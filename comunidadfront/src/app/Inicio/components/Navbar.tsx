@@ -7,7 +7,7 @@ export default function Navbar() {
       {/* Logo + Nombre */}
       <div className="flex items-center space-x-2">
         <img src="/logo.png" alt="Logo" className="w-8 h-8" />
-        <span className="font-bold text-lg">Comunidad Solidaria</span>
+        <Link href="/Inicio" className="hover:underline">Comunidad Solidaria</Link>
       </div>
 
       {/* Links */}
