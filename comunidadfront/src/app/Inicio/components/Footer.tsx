@@ -13,7 +13,7 @@ export default function Footer() {
         </div>
         <div>
           <h3 className="font-bold mb-2">Legal</h3>
-          <p>Términos y condiciones</p>
+          <a href="/Terminos">Términos y condiciones</a>
           <p>Política de privacidad</p>
         </div>
       </div>
