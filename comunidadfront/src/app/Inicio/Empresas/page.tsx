@@ -12,14 +12,11 @@ export default function Empresas() {
 
       <main className="flex-grow">
         {/* Cabecera con fondo verde, similar al mockup */}
-        <div className="bg-[#C5E9BE] bg-opacity-70 py-12 px-8 md:px-20">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-800">
-              Empresas y  <br></br>
-              Organizaciones
-            </h1>
-          </div>
-        </div>
+        <img
+        src="/seccionazulempresa.png"
+        alt="Sección Verde"
+        className="w-full h-auto object-cover block mt-0 pt-0"
+        />
         <section className="py-8 px-8 md:px-20 bg-white">
           <div className="max-w-6xl mx-auto">
                 <h2 className="text-2xl md:text-3xl text-gray-800 font-bold mb-8">
