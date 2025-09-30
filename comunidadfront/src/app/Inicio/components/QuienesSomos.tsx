@@ -6,9 +6,10 @@ export default function QuienesSomos() {
           ¿Quiénes somos?
         </h2>
         <p className="text-lg text-gray-700 mb-8">
-          Somos una comunidad que conecta personas y organizaciones con
-          necesidades sociales, brindando un espacio seguro para donar y
-          colaborar en proyectos solidarios.
+            Somos Comunidad Solidaria una plataforma que facilita la ayuda a quienes desean
+            contribuir mediante donaciones de bienes o servicios. Nos enfocamos en conectar
+            a usuarios dispuestos a colaborar con personas y sectores vulnerables, creando 
+            una red solidaria que visibiliza y satisface necesidades en la comunidad
         </p>
         <img src="/quienes.png" alt="Quienes somos" className="mx-auto w-80" />
       </div>

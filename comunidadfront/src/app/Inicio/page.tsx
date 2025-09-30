@@ -11,13 +11,18 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <Colaborar />
-      <section className="px-8 py-12 text-center max-w-4xl mx-auto">
-        <p className="text-lg text-gray-700">
-          Gracias a tu ayuda, ofrecemos atención a personas y organizaciones
-          dedicadas a respaldar a los sectores más vulnerables de la sociedad.
-          Además, creamos un espacio donde personas y empresas pueden comunicar
-          sus necesidades, y brindamos una plataforma para quienes desean
-          realizar donaciones, ya sean monetarias o de otros tipos de recursos.
+      <section className="bg-white py-8">
+        
+        {/* Ajustamos el estilo del párrafo:
+          1. 'max-w-4xl mx-auto' centra el párrafo y limita su ancho.
+          2. 'text-center' centra el texto dentro del párrafo.
+          3. 'text-2xl' para hacerlo más grande y visible.
+          4. 'text-black' para un negro puro y 'font-normal' (o sin él) 
+             para el peso normal, como se ve en el mockup.
+          5. 'px-4 sm:px-8' para un padding horizontal para que no se pegue.
+        */}
+        <p className="max-w-5xl mx-auto px-4 sm:px-8 text-center text-3xl text-black font-normal leading-relaxed">
+          Gracias a tu ayuda, ofrecemos atención a personas y organizaciones dedicadas a respaldar a los sectores más vulnerables de la sociedad. Además, creamos un espacio donde personas y empresas pueden comunicar sus necesidades, y brindamos una plataforma para quienes desean realizar donaciones, ya sean monetarias o de otros tipos de recursos.
         </p>
       </section>
       <Donaciones />
