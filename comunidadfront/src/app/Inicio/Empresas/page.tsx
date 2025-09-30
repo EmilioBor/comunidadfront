@@ -2,42 +2,67 @@ import Contactanos from "../components/Contactanos";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
+// Asumo que el componente Contactanos manejará la información de contacto y el corazón
+// Para la cabecera verde de "Empresas y Organizaciones" usaremos un div simple.
+
 export default function Empresas() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Navbar />
 
       <main className="flex-grow">
-        {/* Sección de Empresas */}
-        <section className="py-16 px-8 md:px-20 bg-white">
-          <div className="max-w-6xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl text-gray-800 font-bold mb-6">
-                Alianzas con empresas y organizaciones
-            </h2>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-                En Comunidad Solidaria promovemos alianzas con organizaciones, empresas e instituciones para que, animadas
-                por el sentido de la solidaridad, se involucren, colaboren y se comprometan en la construcción de un mundo
-                más justo.
-                ¿Cómo colaborar?
-                Donaciones corporativas
-                Donación de empresas en conjunto con empleados o clientes
-                Campañas de redondeo de vuelto
-                Especie y productos
-                Servicios
-                Para más información:Comunicarse a donaciones@comunidadsolidaria.org.ar
-                Las empresas y organizaciones que nos acompañan son:
+        {/* Cabecera con fondo verde, similar al mockup */}
+        <div className="bg-[#C5E9BE] bg-opacity-70 py-12 px-8 md:px-20">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-800">
+              Empresas y  <br></br>
+              Organizaciones
+            </h1>
+          </div>
+        </div>
+        <section className="py-8 px-8 md:px-20 bg-white">
+          <div className="max-w-6xl mx-auto">
+                <h2 className="text-2xl md:text-3xl text-gray-800 font-bold mb-8">
+                    Alianzas con empresas y organizaciones
+                </h2>
+                <p className="text-lg text-gray-700 mb-8 max-w-4xl">
+                    En Comunidad Solidaria promovemos alianzas con organizaciones, empresas e instituciones para que, animadas
+                    por el sentido de la solidaridad, se involucren, colaboren y se comprometan en la construcción de un mundo
+                    más justo.
+                </p>
+                <h3 className="text-lg font-bold text-gray-800 mb-3">
+                    ¿Cómo colaborar?
+                </h3>
+                <ul className="list-disc list-outside ml-5 text-lg text-gray-700 mb-8 space-y-2">
+                    <li>Donaciones corporativas</li>
+                    <li>Donación de empresas en conjunto con empleados o clientes</li>
+                    <li>Campañas de redondeo de vuelto</li>
+                    <li>Especie y productos</li>
+                    <li>Servicios</li>
+                </ul>
 
-            </p>
-            <img
-            src="/carrito.png"
-            alt="Quienes somos"
-            className="w-[full] h-[full] object-cover rounded-lg "
-          />
+                {/* Subtítulo Para más información y Email */}
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                Para más información
+                </h3>
+                <p className="text-lg text-gray-700 mb-8">
+                Comunicarse a <a href="mailto:donaciones@comunidadsolidaria.org.ar" className="text-green-600 hover:text-green-700 font-medium">donaciones@comunidadsolidaria.org.ar</a>
+                </p>
+
+                {/* Subtítulo de Logos */}
+                <h3 className="text-lg font-bold text-gray-800 mb-6">
+                Las empresas y organizaciones que nos acompañan son:
+                </h3>
+
+                <img
+                src="/carrito.png"
+                alt="Quienes somos"
+                className="w-[full]] h-[full] object-cover rounded-lg "
+            />
           </div>
         </section>
 
-        
-        <Contactanos />
+        <Contactanos /> 
       </main>
 
       <Footer />
