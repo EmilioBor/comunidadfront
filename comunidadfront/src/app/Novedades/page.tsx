@@ -33,7 +33,9 @@ export default function Novedades() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white mt-0 pt-0">
-      <Navbar />
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Navbar />
+      </div>
         <main className="flex-grow">
         <img
         src="/seccionverde.png"
