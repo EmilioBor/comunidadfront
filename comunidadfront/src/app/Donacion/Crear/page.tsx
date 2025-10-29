@@ -28,16 +28,13 @@ export default function CrearDonacion() {
     console.log("📦 Donación enviada:", donacion);
 
     try {
-      // 🔧 Descomentar cuando esté el backend listo:
-      /*
-      const response = await fetch("https://tuapi.com/api/Donacion/api/v1/agrega/donacion", {
+      const response = await fetch("https://localhost:7168/api/Donacion/api/v1/agrega/donacion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(donacion),
-      });
+    });
 
-      if (!response.ok) throw new Error("Error al crear la donación");
-      */
+    if (!response.ok) throw new Error("Error al crear la donación");
 
       setMostrarModal(true);
       setDescripcion("");
