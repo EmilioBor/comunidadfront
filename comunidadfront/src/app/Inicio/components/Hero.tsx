@@ -22,9 +22,13 @@ export default function Hero() {
 
           <div className="flex gap-4">
             {/* Botón Donar */}
-            <button className="bg-[#C5E9BE] text-gray-800 px-6 py-3 border border-[#C5E9BE] rounded-lg shadow-md hover:bg-green-300 transition duration-300">
+            <Link
+              href="/Donacion/ComunidadSolidaria"
+              className="bg-[#C5E9BE] text-gray-800 px-6 py-3 border border-[#C5E9BE] rounded-lg shadow-md hover:bg-green-300 transition duration-300"
+            >
               Donar aquí
-            </button>
+            </Link>
+            
 
             {/* Link con estilo de botón */}
             <Link
