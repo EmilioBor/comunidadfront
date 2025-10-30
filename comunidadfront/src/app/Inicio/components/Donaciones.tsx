@@ -1,9 +1,8 @@
-"use client"; 
-
-import { useRouter } from 'next/navigation'; 
+"use client";
+import { useRouter } from 'next/navigation';
 
 export default function Donaciones() {
-  const router = useRouter(); 
+  const router = useRouter();
 
   return (
     <section className="py-16 px-16 text-center bg-white">
@@ -13,35 +12,35 @@ export default function Donaciones() {
       <div className="flex justify-center gap-4">
         <button 
           onClick={() => router.push('/Donacion/ComunidadSolidaria?tipo=Dinero')}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-[#D4F0F0] text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-[#b8e0e0] transition duration-200"
         >
           Dinero
         </button>
 
         <button 
           onClick={() => router.push('/Donacion/ComunidadSolidaria?tipo=Alimento')}
-          className="bg-green-500 text-white px-4 py-2 rounded"
+          className="bg-[#D4F0F0] text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-[#b8e0e0] transition duration-200"
         >
           Alimento
         </button>
 
         <button 
           onClick={() => router.push('/Donacion/ComunidadSolidaria?tipo=Ropa')}
-          className="bg-yellow-500 text-white px-4 py-2 rounded"
+          className="bg-[#D4F0F0] text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-[#b8e0e0] transition duration-200"
         >
           Ropa
         </button>
 
         <button 
           onClick={() => router.push('/Donacion/ComunidadSolidaria?tipo=Mueble')}
-          className="bg-orange-500 text-white px-4 py-2 rounded"
+          className="bg-[#D4F0F0] text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-[#b8e0e0] transition duration-200"
         >
           Mueble
         </button>
 
         <button 
           onClick={() => router.push('/Donacion/ComunidadSolidaria?tipo=Otros')}
-          className="bg-gray-500 text-white px-4 py-2 rounded"
+          className="bg-[#D4F0F0] text-gray-800 px-6 py-3 rounded-lg font-medium hover:bg-[#b8e0e0] transition duration-200"
         >
           Otros
         </button>
