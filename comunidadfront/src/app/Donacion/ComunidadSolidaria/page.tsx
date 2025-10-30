@@ -1,53 +1,119 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { postDonacion } from "@/lib/api/donacionApi";
+import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
+import { useSearchParams } from "next/navigation";
 
-export default function CrearDonacion() {
+interface DonacionTipo {
+  id: number;
+  descripcion: string;
+}
+
+export default function DonacionComunidadSolidaria() {
   const [descripcion, setDescripcion] = useState("");
-  const [tipo, setTipo] = useState("Dinero");
+  const [tipoDonacionId, setTipoDonacionId] = useState("");
+  const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarChat, setMostrarChat] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  
+  const searchParams = useSearchParams();
+  const tipoParam = searchParams.get('tipo');
 
   const perfilDestino = {
-    id: 1,
+    id: 5,
     nombre: "Comunidad Solidaria",
     email: "donaciones@comunidadsolidaria.org.ar",
     imagen: "/logo.png",
   };
 
+  useEffect(() => {
+    const cargarTiposDonacion = async () => {
+      try {
+        const tipos = await getDonacionTipos();
+        console.log("📋 Tipos de donación cargados:", tipos);
+        setTiposDonacion(tipos);
+        
+        console.log("🔍 Parámetro tipo recibido:", tipoParam);
+        
+        if (tipoParam && tipos.length > 0) {
+          // Viene desde botones de tipo - buscar el tipo específico
+          const tipoEncontrado = tipos.find(tipo => 
+            tipo.descripcion.toLowerCase() === tipoParam.toLowerCase()
+          );
+          
+          if (tipoEncontrado) {
+            console.log("✅ Tipo encontrado:", tipoEncontrado);
+            setTipoDonacionId(tipoEncontrado.id.toString());
+          } else {
+            const tipoAproximado = tipos.find(tipo => 
+              tipo.descripcion.toLowerCase().includes(tipoParam.toLowerCase()) ||
+              tipoParam.toLowerCase().includes(tipo.descripcion.toLowerCase())
+            );
+            
+            if (tipoAproximado) {
+              console.log("✅ Tipo aproximado encontrado:", tipoAproximado);
+              setTipoDonacionId(tipoAproximado.id.toString());
+            } else {
+              setTipoDonacionId(tipos[0].id.toString());
+            }
+          }
+        } else if (tipos.length > 0) {
+          // Viene desde "Donar aquí" - usar el primer tipo por defecto
+          setTipoDonacionId(tipos[0].id.toString());
+        }
+      } catch (error) {
+        console.error("Error al cargar tipos de donación:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarTiposDonacion();
+  }, [tipoParam]);
+
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!tipoDonacionId) {
+      alert("Por favor selecciona un tipo de donación");
+      return;
+    }
 
     const donacion = {
       descripcion: descripcion || "Donación realizada desde publicación",
       fechaHora: new Date().toISOString(),
-      tipo: tipo,
-      perfilDestinoId: perfilDestino.id,
+      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId),
+      perfilIdPerfil: perfilDestino.id,
     };
 
     console.log("📦 Donación enviada:", donacion);
 
     try {
-      const response = await fetch(
-        "https://localhost:7168/api/Donacion/api/v1/agrega/donacion",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(donacion),
-        }
-      );
-
-      if (!response.ok) throw new Error("Error al crear la donación");
+      await postDonacion(donacion);
 
       setMostrarModal(true);
       setDescripcion("");
-      setTipo("Dinero");
       setMostrarChat(true);
     } catch (error) {
-      console.error(error);
-      alert("❌ Error al enviar la donación");
+      console.error("❌ Error al enviar la donación:", error);
+      alert("Error al enviar la donación. Revisa la consola para más detalles.");
     }
   };
+
+  const tipoSeleccionado = tiposDonacion.find(tipo => tipo.id.toString() === tipoDonacionId);
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando tipos de donación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-sky-50 flex flex-col items-center py-10">
@@ -69,6 +135,19 @@ export default function CrearDonacion() {
           <p className="text-gray-500 text-sm">{perfilDestino.email}</p>
         </div>
 
+        {/* MOSTRAR TIPO SELECCIONADO SI VIENE DESDE BOTONES */}
+        {tipoParam && tipoSeleccionado && (
+          <div className="mb-6 p-4 bg-sky-100 rounded-lg border border-sky-300">
+            <p className="text-sky-700 font-medium text-center text-lg">
+              Tipo de donación:{" "}
+              <span className="font-semibold">{tipoSeleccionado.descripcion}</span>
+            </p>
+            <p className="text-sky-600 text-sm text-center mt-1">
+              Seleccionado desde la página principal
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleCrearDonacion} className="flex flex-col gap-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">
@@ -79,25 +158,38 @@ export default function CrearDonacion() {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Escribe una breve descripción de tu donación..."
+              required
             />
           </div>
 
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Tipo de Donación
-            </label>
-            <select
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-gray-800"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-            >
-              <option value="Dinero">Dinero</option>
-              <option value="Alimento">Alimento</option>
-              <option value="Ropa">Ropa</option>
-              <option value="Mueble">Mueble</option>
-              <option value="Otros">Otros</option>
+          {/* MOSTRAR SELECT SOLO SI NO VIENE DESDE BOTONES (sin tipoParam) */}
+          {!tipoParam && (
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">
+                Tipo de Donación
+              </label>
+              <select
+                className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-gray-800"
+                value={tipoDonacionId}
+                onChange={(e) => setTipoDonacionId(e.target.value)}
+              >
+                {tiposDonacion.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.descripcion}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* SELECT OCULTO SI VIENE DESDE BOTONES - mantiene la funcionalidad */}
+          {tipoParam && (
+            <select className="hidden" value={tipoDonacionId} onChange={(e) => setTipoDonacionId(e.target.value)}>
+              {tiposDonacion.map((tipo) => (
+                <option key={tipo.id} value={tipo.id}>{tipo.descripcion}</option>
+              ))}
             </select>
-          </div>
+          )}
 
           <button
             type="submit"
@@ -123,7 +215,7 @@ export default function CrearDonacion() {
               ¡Donación enviada con éxito!
             </h3>
             <p className="text-gray-600 mb-4">
-              Tu donación fue enviada al perfil {perfilDestino.nombre}.
+              Tu donación {tipoSeleccionado && `de ${tipoSeleccionado.descripcion.toLowerCase()}`} fue enviada.
             </p>
             <button
               onClick={() => setMostrarModal(false)}

@@ -1,50 +1,95 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { postDonacion } from "@/lib/api/donacionApi";
+import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
+
+// Interface para los tipos de donación
+interface DonacionTipo {
+  id: number;
+  descripcion: string;
+}
 
 export default function CrearDonacion() {
   const [descripcion, setDescripcion] = useState("");
-  const [tipo, setTipo] = useState("Dinero");
+  const [tipoDonacionId, setTipoDonacionId] = useState("");
+  const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarChat, setMostrarChat] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
   const perfilDestino = {
-    id: 1,
-    nombre: "Cáritas Argentina La Plata",
+    id: 2,
+    nombre: "adas", 
     email: "contacto@caritaslp.org",
     imagen: "/perfil-donacion.jpg",
   };
 
+  useEffect(() => {
+    const cargarTiposDonacion = async () => {
+      try {
+        const tipos = await getDonacionTipos();
+        console.log("📋 Tipos de donación cargados:", tipos);
+        setTiposDonacion(tipos);
+        if (tipos.length > 0) {
+          setTipoDonacionId(tipos[0].id.toString());
+        }
+      } catch (error) {
+        console.error("Error al cargar tipos de donación:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    cargarTiposDonacion();
+  }, []);
+
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!tipoDonacionId) {
+      alert("Por favor selecciona un tipo de donación");
+      return;
+    }
+
+    // ESTRUCTURA CORRECTA según tu modelo Entity Framework
     const donacion = {
       descripcion: descripcion || "Donación realizada desde publicación",
       fechaHora: new Date().toISOString(),
-      tipo: tipo,
-      perfilDestinoId: perfilDestino.id,
+      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId), // ← NOMBRE EXACTO del modelo
+      perfilIdPerfil: perfilDestino.id, // ← NOMBRE EXACTO del modelo
     };
 
     console.log("📦 Donación enviada:", donacion);
-
-    try {
-      const response = await fetch("https://localhost:7168/api/Donacion/api/v1/agrega/donacion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(donacion),
+    console.log("🔍 Propiedades:", {
+      donacionTipoIdDonacionTipo: donacion.donacionTipoIdDonacionTipo,
+      perfilIdPerfil: donacion.perfilIdPerfil
     });
 
-    if (!response.ok) throw new Error("Error al crear la donación");
+    try {
+      await postDonacion(donacion);
 
       setMostrarModal(true);
       setDescripcion("");
-      setTipo("Dinero");
+      setTipoDonacionId(tiposDonacion[0]?.id?.toString() || "");
       setMostrarChat(true);
     } catch (error) {
-      console.error(error);
-      alert("❌ Error al enviar la donación");
+      console.error("❌ Error al enviar la donación:", error);
+      console.error("❌ Datos enviados:", donacion);
+      alert("Error al enviar la donación. Revisa la consola para más detalles.");
     }
   };
+
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando tipos de donación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-sky-50 flex flex-col items-center py-10">
@@ -85,14 +130,14 @@ export default function CrearDonacion() {
             </label>
             <select
               className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-gray-800"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
+              value={tipoDonacionId}
+              onChange={(e) => setTipoDonacionId(e.target.value)}
             >
-              <option value="Dinero">Dinero</option>
-              <option value="Alimento">Alimento</option>
-              <option value="Ropa">Ropa</option>
-              <option value="Mueble">Mueble</option>
-              <option value="Otros">Otros</option>
+              {tiposDonacion.map((tipo) => (
+                <option key={tipo.id} value={tipo.id}>
+                  {tipo.descripcion}
+                </option>
+              ))}
             </select>
           </div>
 
