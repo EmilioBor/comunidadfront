@@ -17,9 +17,12 @@ export default function Navbar() {
         <Link href="/Novedades" className="hover:underline">Novedades</Link>
         <Link href="/Inicio/Empresas" className="hover:underline">Contactanos</Link>
         <Link href="/login" className="hover:underline">Inicio Sesión</Link>
-        <button className="bg-[#C5E9BE] text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-300">
-          Donar aquí
-        </button>
+        <Link
+              href="/Donacion/ComunidadSolidaria"
+              className="bg-[#C5E9BE] text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-300"
+            >
+              Donar aquí
+            </Link>
       </div>
     </nav>
   );
