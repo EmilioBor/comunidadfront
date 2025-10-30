@@ -1,36 +1,62 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams  } from "next/navigation";
+import { crearPerfilUsuario } from "./actions";
 
 export default function Empresas() {
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const idUsuario = searchParams.get("id");;
   const [razonSocial, setRazonSocial] = useState("");
   const [cbu, setCbu] = useState("");
   const [cuit, setCuit] = useState("");
   const [alias, setAlias] = useState("");
   const [localidad, setLocalidad] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [foto, setFoto] = useState<File | null>(null);
+  const [imagen, setImagen] = useState<File | null>(null);
   const [error, setError] = useState("");
+
+  // ✅ Esta función debe ir fuera del handleSubmit
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImagen(e.target.files[0]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!idUsuario) {
+      setError("No se encontró el ID del usuario. Vuelve a registrarte.");
+      return;
+    }
+    try {
+      // Creamos el FormData
+      const formData = new FormData();
+      formData.append("cuitCuil", cuit);
+      formData.append("razonSocial", razonSocial);
+      formData.append("descripcion", descripcion);
+      formData.append("cbu", cbu);
+      formData.append("alias", alias);
+      formData.append("usuarioIdUsuario", idUsuario);
+      formData.append("localidadIdLocalidad", localidad);
+      if (imagen) formData.append("files", imagen); 
 
-    // 👉 Acá después armamos el POST
-    console.log({
-      razonSocial,
-      cbu,
-      cuit,
-      alias,
-      localidad,
-      descripcion,
-      foto,
-    });
+      console.log("Formulario preparado para enviar:", Object.fromEntries(formData.entries()));
 
-    // De momento solo te llevo a la siguiente vista
-    router.push("/perfil");
+      const res = await crearPerfilUsuario(formData);
+
+      if (res) {
+        console.log("Perfil creado:", res.data);
+        router.push("/Inicio");
+      } else {
+        setError("Error al registrarse. Intenta nuevamente.");
+      }
+    } catch (err) {
+      console.error("Error en el registro:", err);
+      setError("Error de conexión con el servidor");
+    }
   };
 
   return (
@@ -42,22 +68,19 @@ export default function Empresas() {
         className="rounded-2xl shadow-lg p-10 w-full max-w-3xl text-gray-800 text-center"
         style={{ backgroundColor: "#C5E9BE" }}
       >
-        {/* Logo + título */}
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.png" alt="logo" className="w-12 h-12 mb-2" />
           <h1 className="text-2xl font-bold">Te damos la bienvenida a</h1>
           <h2 className="text-3xl font-[cursive]">Comunidad Solidaria</h2>
         </div>
 
-        {/* Formulario */}
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left"
         >
+          {/* Campos */}
           <div>
-            <label className="block text-sm font-semibold mb-1">
-              Razón Social
-            </label>
+            <label className="block text-sm font-semibold mb-1">Razón Social</label>
             <input
               type="text"
               value={razonSocial}
@@ -66,7 +89,6 @@ export default function Empresas() {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-semibold mb-1">CBU</label>
             <input
@@ -77,7 +99,6 @@ export default function Empresas() {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-semibold mb-1">CUIT / CUIL</label>
             <input
@@ -88,7 +109,6 @@ export default function Empresas() {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-semibold mb-1">Alias</label>
             <input
@@ -99,7 +119,6 @@ export default function Empresas() {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-semibold mb-1">Localidad</label>
             <input
@@ -110,7 +129,6 @@ export default function Empresas() {
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-semibold mb-1">Descripción</label>
             <input
@@ -122,12 +140,13 @@ export default function Empresas() {
             />
           </div>
 
-          {/* Foto ocupa todo el ancho */}
+          {/* Imagen */}
           <div className="md:col-span-2">
             <label className="block text-sm font-semibold mb-1">Foto</label>
             <input
               type="file"
-              onChange={(e) => setFoto(e.target.files?.[0] || null)}
+              accept="image/*"
+              onChange={handleImageChange}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
             />
           </div>
