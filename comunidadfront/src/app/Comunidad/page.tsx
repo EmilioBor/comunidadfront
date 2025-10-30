@@ -3,7 +3,7 @@ import Footer from "../Inicio/components/Footer";
 import Comunidad_Publicacion from "./components/Publicaciones";
 import SidebarPerfil from "./components/SidebarPerfil";
 import CrearPublicacion from "./components/CrearPublicacion";
-import Sponsor from "./components/Sponsor";
+import Sponsor from "./components/SidebarSponsor";
 
 export default function Comunidad() {
   return (
@@ -14,30 +14,35 @@ export default function Comunidad() {
       </div>
 
       {/* Contenido principal */}
-      <main className="flex-grow mt-20 px-6">
-        <div className="grid grid-cols-12 gap-4">
-          {/* Columna 1: Perfil */}
-          <div className="col-span-2 sticky top-24 h-fit">
-            <SidebarPerfil />
-          </div>
+        <main className="flex-grow mt-20 px-6">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Sidebar izquierdo - Perfil */}
+            <div className="col-span-2">
+              <div className="sticky top-20">
+                <SidebarPerfil />
+              </div>
+            </div>
 
-          {/* Columna 2: Crear publicación */}
-          <div className="col-span-3 sticky top-24 h-fit">
-            <CrearPublicacion />
-          </div>
+            {/* Feed central */}
+            <div className="col-span-8 flex flex-col gap-6">
+              <div className="max-w-3xl mx-auto w-full">
+                <CrearPublicacion />
+              </div>
+              <div className="max-w-3xl mx-auto w-full">
+                <Comunidad_Publicacion />
+              </div>
+            </div>
 
-          {/* Columna 3: Publicaciones */}
-          <div className="col-span-5">
-            <Comunidad_Publicacion />
+            {/* Sidebar derecho - Sponsor */}
+            <div className="col-span-2">
+              <div className="sticky top-28">
+                <div className="flex flex-col justify-between h-[calc(100vh-8rem)]">
+                  <Sponsor />
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Columna 4: Sponsor */}
-          <div className="col-span-2 sticky top-24 h-fit">
-            <Sponsor />
-          </div>
-        </div>
-      </main>
-
+        </main>
       {/* Footer */}
       <Footer />
     </div>
