@@ -1,37 +1,51 @@
-interface NovedadProps {
-  novedad: {
-    id: number;
-    titulo: string;
-    descripcion: string;
-    fecha: string;
-    nombrePerfilIdPerfil: string;
-    imagen: string;
-  };
+import Link from "next/link";
+import Image from "next/image";
+
+export interface CardProps {
+  imagen: string;
+  titulo: string;
+  fecha: string;
+  descripcion: string;
 }
 
-export default function Cards({ novedad }: NovedadProps) {
+export default function Cards({ imagen, titulo, fecha, descripcion}: CardProps
+) {
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden flex flex-col transition-transform hover:scale-105">
-        <h1>HOLA MUNDO</h1>
-      <img
-        src={novedad.imagen || "/placeholder.png"}
-        alt={novedad.titulo}
-        className="w-full h-52 object-cover"
-      />
-      <div className="p-5 flex flex-col flex-grow">
-        <h3 className="text-xl font-semibold mb-2 text-[#2c3e50]">
-          {novedad.titulo}
-        </h3>
-        <p className="text-gray-700 text-sm flex-grow">
-          {novedad.descripcion.length > 120
-            ? `${novedad.descripcion.substring(0, 120)}...`
-            : novedad.descripcion}
-        </p>
-        <p className="text-xs text-gray-500 mt-3">{novedad.fecha}</p>
-        <button className="mt-4 bg-[#b30000] text-white py-2 px-4 rounded-md self-start hover:bg-[#8a0000] transition">
-          Leer más
-        </button>
+    <article className="max-w-sm bg-white rounded-lg shadow-md overflow-hidden transform transition-transform hover:scale-105">
+      <div className="relative w-full h-48">
+        <div className="relative w-full h-48">
+          <Image
+            src={imagen}
+            alt = "Imagen"
+            fill
+            sizes="(max-width: 640px) 100vw, 400px"
+            className="object-cover"
+            priority
+          />
+        </div>
       </div>
-    </div>
+
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span className="font-medium text-gray-700">{descripcion}</span>
+          <time className="text-gray-400">{fecha}</time>
+        </div>
+
+        <h3 className="text-lg font-semibold text-gray-900 leading-snug">
+          {titulo}
+        </h3>
+
+        <p className="text-sm text-gray-600 line-clamp-3">{descripcion}</p>
+
+        <div className="mt-2">
+          <Link
+            href = "#"
+            className="inline-block px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+          >
+            Leer más
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }
