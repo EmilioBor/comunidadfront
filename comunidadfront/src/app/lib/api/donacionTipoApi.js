@@ -1,8 +1,9 @@
+// src/lib/api/donacionTipoApi.js
 import axios from 'axios';
 
 const BASE_URL = 'https://localhost:7168/api/DonacionTipo/api/v1';
 
-//Obtener todos los tipos de donación
+// Obtener todos los tipos de donación
 export async function getDonacionTipos() {
     try {
         const response = await axios.get(`${BASE_URL}/donacionTipos`, {
@@ -15,7 +16,7 @@ export async function getDonacionTipos() {
     }
 }
 
-//Obtener un tipo de donación por ID
+// Obtener un tipo de donación por ID 
 export async function getDonacionTipoById(id) {
     try {
         const response = await axios.get(`${BASE_URL}/donacionTipo/id/${id}`, {
@@ -28,7 +29,7 @@ export async function getDonacionTipoById(id) {
     }
 }
 
-//Crear un nuevo tipo de donación
+// Crear un nuevo tipo de donación
 export async function postDonacionTipo(data) {
     try {
         const response = await axios.post(`${BASE_URL}/agrega/donacionTipo`, data, {

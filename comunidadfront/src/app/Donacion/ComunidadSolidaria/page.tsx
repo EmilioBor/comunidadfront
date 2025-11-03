@@ -1,9 +1,9 @@
+// Donacion/ComunidadSolidaria/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { postDonacion } from "@/lib/api/donacionApi";
-import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { crearDonacionComunidad, obtenerTiposDonacion } from "./actions";
 
 interface DonacionTipo {
   id: number;
@@ -11,12 +11,14 @@ interface DonacionTipo {
 }
 
 export default function DonacionComunidadSolidaria() {
+  const router = useRouter();
   const [descripcion, setDescripcion] = useState("");
   const [tipoDonacionId, setTipoDonacionId] = useState("");
   const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarChat, setMostrarChat] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
   
   const searchParams = useSearchParams();
   const tipoParam = searchParams.get('tipo');
@@ -31,14 +33,13 @@ export default function DonacionComunidadSolidaria() {
   useEffect(() => {
     const cargarTiposDonacion = async () => {
       try {
-        const tipos = await getDonacionTipos();
+        const tipos = await obtenerTiposDonacion();
         console.log("📋 Tipos de donación cargados:", tipos);
         setTiposDonacion(tipos);
         
         console.log("🔍 Parámetro tipo recibido:", tipoParam);
         
         if (tipoParam && tipos.length > 0) {
-          // Viene desde botones de tipo - buscar el tipo específico
           const tipoEncontrado = tipos.find(tipo => 
             tipo.descripcion.toLowerCase() === tipoParam.toLowerCase()
           );
@@ -60,11 +61,11 @@ export default function DonacionComunidadSolidaria() {
             }
           }
         } else if (tipos.length > 0) {
-          // Viene desde "Donar aquí" - usar el primer tipo por defecto
           setTipoDonacionId(tipos[0].id.toString());
         }
       } catch (error) {
         console.error("Error al cargar tipos de donación:", error);
+        setError("Error al cargar los tipos de donación");
       } finally {
         setCargando(false);
       }
@@ -75,9 +76,10 @@ export default function DonacionComunidadSolidaria() {
 
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (!tipoDonacionId) {
-      alert("Por favor selecciona un tipo de donación");
+      setError("Por favor selecciona un tipo de donación");
       return;
     }
 
@@ -91,14 +93,14 @@ export default function DonacionComunidadSolidaria() {
     console.log("📦 Donación enviada:", donacion);
 
     try {
-      await postDonacion(donacion);
+      await crearDonacionComunidad(donacion);
 
       setMostrarModal(true);
       setDescripcion("");
       setMostrarChat(true);
     } catch (error) {
       console.error("❌ Error al enviar la donación:", error);
-      alert("Error al enviar la donación. Revisa la consola para más detalles.");
+      setError("Error al enviar la donación. Intenta nuevamente.");
     }
   };
 
@@ -134,6 +136,12 @@ export default function DonacionComunidadSolidaria() {
           </h3>
           <p className="text-gray-500 text-sm">{perfilDestino.email}</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* MOSTRAR TIPO SELECCIONADO SI VIENE DESDE BOTONES */}
         {tipoParam && tipoSeleccionado && (

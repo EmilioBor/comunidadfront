@@ -1,8 +1,9 @@
+// Donacion/Crear/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { postDonacion } from "@/lib/api/donacionApi";
-import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
+import { useRouter } from "next/navigation";
+import { crearDonacion, obtenerTiposDonacion } from "./actions";
 
 // Interface para los tipos de donación
 interface DonacionTipo {
@@ -11,12 +12,14 @@ interface DonacionTipo {
 }
 
 export default function CrearDonacion() {
+  const router = useRouter();
   const [descripcion, setDescripcion] = useState("");
   const [tipoDonacionId, setTipoDonacionId] = useState("");
   const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarChat, setMostrarChat] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
 
   const perfilDestino = {
     id: 2,
@@ -28,7 +31,7 @@ export default function CrearDonacion() {
   useEffect(() => {
     const cargarTiposDonacion = async () => {
       try {
-        const tipos = await getDonacionTipos();
+        const tipos = await obtenerTiposDonacion();
         console.log("📋 Tipos de donación cargados:", tipos);
         setTiposDonacion(tipos);
         if (tipos.length > 0) {
@@ -36,6 +39,7 @@ export default function CrearDonacion() {
         }
       } catch (error) {
         console.error("Error al cargar tipos de donación:", error);
+        setError("Error al cargar los tipos de donación");
       } finally {
         setCargando(false);
       }
@@ -46,28 +50,24 @@ export default function CrearDonacion() {
 
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (!tipoDonacionId) {
-      alert("Por favor selecciona un tipo de donación");
+      setError("Por favor selecciona un tipo de donación");
       return;
     }
 
-    // ESTRUCTURA CORRECTA según tu modelo Entity Framework
     const donacion = {
       descripcion: descripcion || "Donación realizada desde publicación",
       fechaHora: new Date().toISOString(),
-      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId), // ← NOMBRE EXACTO del modelo
-      perfilIdPerfil: perfilDestino.id, // ← NOMBRE EXACTO del modelo
+      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId),
+      perfilIdPerfil: perfilDestino.id,
     };
 
     console.log("📦 Donación enviada:", donacion);
-    console.log("🔍 Propiedades:", {
-      donacionTipoIdDonacionTipo: donacion.donacionTipoIdDonacionTipo,
-      perfilIdPerfil: donacion.perfilIdPerfil
-    });
 
     try {
-      await postDonacion(donacion);
+      await crearDonacion(donacion);
 
       setMostrarModal(true);
       setDescripcion("");
@@ -75,8 +75,7 @@ export default function CrearDonacion() {
       setMostrarChat(true);
     } catch (error) {
       console.error("❌ Error al enviar la donación:", error);
-      console.error("❌ Datos enviados:", donacion);
-      alert("Error al enviar la donación. Revisa la consola para más detalles.");
+      setError("Error al enviar la donación. Intenta nuevamente.");
     }
   };
 
@@ -110,6 +109,12 @@ export default function CrearDonacion() {
           </h3>
           <p className="text-gray-500 text-sm">{perfilDestino.email}</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleCrearDonacion} className="flex flex-col gap-4">
           <div>
