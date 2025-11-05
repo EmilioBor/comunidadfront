@@ -22,9 +22,9 @@ export default function CrearDonacion() {
   const [error, setError] = useState("");
 
   const perfilDestino = {
-    id: 2,
-    nombre: "adas", 
-    email: "contacto@caritaslp.org",
+    id: 12,
+    nombre: "Lucas Cambas", 
+    email: "lucascambas@gmail.com",
     imagen: "/perfil-donacion.jpg",
   };
 
