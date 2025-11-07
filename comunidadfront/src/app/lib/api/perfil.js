@@ -18,3 +18,29 @@ export async function CrearPerfil(data) {
         throw error;  // Propaga el error para manejarlo en el cliente
     }
 }
+
+// Obtener perfil por ID
+export async function getPerfilById(id) {
+    try {
+        const response = await axios.get(`${BASE_URL}/perfil/id/${id}`, {
+            httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false })
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error al obtener perfil por ID:', error);
+        throw error;
+    }
+}
+
+// Obtener todos los perfiles
+export async function getPerfiles() {
+    try {
+        const response = await axios.get(`${BASE_URL}/perfils`, {
+            httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false })
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error al obtener perfiles:', error);
+        throw error;
+    }
+}
