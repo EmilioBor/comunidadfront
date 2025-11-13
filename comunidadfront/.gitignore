@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Evitar archivos temporales de npm
+.npm/
+.npmrc
