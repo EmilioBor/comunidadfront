@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams  } from "next/navigation";
-import { crearPerfilUsuario } from "./actions";
+import { crearPerfilUsuario, obtenerLocalidades } from "./actions";
 
 export default function Empresas() {
   const searchParams = useSearchParams();
@@ -16,6 +16,22 @@ export default function Empresas() {
   const [descripcion, setDescripcion] = useState("");
   const [imagen, setImagen] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [localidades, setLocalidades] = useState<Array<any>>([]);
+
+  // Cargar las localidades al montar el componente 
+  useEffect(() => {
+    const cargarLocalidades = async () => {
+      try {
+        const res = await obtenerLocalidades();
+        setLocalidades(res); // asegúrate de que res sea un array [{idLocalidad, nombre}]
+      } catch (err) {
+        console.error("Error cargando localidades:", err);
+      }
+    };
+
+    cargarLocalidades();
+  }, []);
+
 
   // ✅ Esta función debe ir fuera del handleSubmit
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,14 +137,33 @@ export default function Empresas() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">Localidad</label>
-            <input
-              type="text"
+            <select
               value={localidad}
               onChange={(e) => setLocalidad(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="
+                w-full px-3 py-2 
+                rounded-t-lg 
+                rounded-b-[16px] 
+                border border-gray-300 
+                bg-white 
+                focus:outline-none focus:ring-2 focus:ring-green-400
+                text-gray-700
+              "
               required
-            />
+            >
+              <option value="" disabled>
+                Elegí una localidad...
+              </option>
+
+              {localidades.map((loc: any) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.nombre}
+                </option>
+              ))}
+            </select>
           </div>
+
+
           <div>
             <label className="block text-sm font-semibold mb-1">Descripción</label>
             <input
@@ -144,11 +179,13 @@ export default function Empresas() {
           <div className="md:col-span-2">
             <label className="block text-sm font-semibold mb-1">Foto</label>
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
-            />
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                aria-label="Selecciona foto de perfil"
+              />
+              <p className="text-xs text-gray-600 mt-1">Selecciona foto de perfil</p>
           </div>
 
           {error && (

@@ -6,7 +6,7 @@ export async function loginAPI(data) {
         console.log('Datos enviados:', data);
         
         // Realizar la solicitud con axios
-        const res = await axios.post('https://localhost:7168/Login/Login', data, {
+        const res = await axios.post('https://localhost:7168/api/Usuario/login', data, {
             headers: {
                 'Content-Type': 'application/json',
             }

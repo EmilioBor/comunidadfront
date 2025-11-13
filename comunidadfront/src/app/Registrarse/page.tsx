@@ -3,49 +3,51 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { registrarUsuario } from "./actions";
-import axios from "axios";
 
 export default function Registrarse() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
+  const [rol, setRol] = useState(""); // 👈 Nuevo estado para el rol
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const data = { Email: email, Password: password };
+  // 👇 Ahora incluimos el campo "rol" como lo necesita la API
+  const data = { 
+    email: email, 
+    password: password,
+    rol: rol
+  };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-  if (password !== confirmPassword) {
-    setError("Las contraseñas no coinciden");
-    return;
-  }
-
-  try {
-    const res = await registrarUsuario(data);
-    
-    // 👇 CAMBIO CLAVE: Verifica si la respuesta tiene un 'id' para confirmar el éxito
-    if (res?.id) { 
-      const id = res.id; // ✅ Usamos el ID devuelto por el backend
-      
-      alert("Usuario registrado con éxito");
-      console.log("Usuario registrado con ID:", id); 
-      
-      // ✅ Redirección correcta usando la ruta /Persona/[id]
-      router.push(`/Registrarse/Persona?id=${id}`);
-
-      
-    } else {
-      // Manejar el caso de un registro fallido (por ejemplo, email ya existe)
-      setError("Error al registrarse. Intenta con otro correo.");
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    setError("No se pudo conectar con el servidor");
-  }
-};
+
+    try {
+      const res = await registrarUsuario(data);
+      
+      if (res?.id) { 
+        const id = res.id;
+
+        alert("Usuario registrado con éxito");
+        console.log("Usuario registrado con ID:", id);
+
+        router.push(`/Registrarse/Persona?id=${id}`);
+
+      } else {
+        setError("Error al registrarse. Intenta con otro correo.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo conectar con el servidor");
+    }
+  };
 
   return (
     <div
@@ -63,6 +65,8 @@ export default function Registrarse() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+
+          {/* EMAIL */}
           <div>
             <label className="block text-sm font-semibold mb-1">Correo</label>
             <input
@@ -75,6 +79,32 @@ export default function Registrarse() {
             />
           </div>
 
+          {/* ROL SELECT */}
+          <div>
+            <label className="block text-sm font-semibold mb-1">Rol</label>
+            <select
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
+              className="
+                w-full px-3 py-2 
+                rounded-t-lg 
+                rounded-b-[16px]   /* 👈 borde inferior de 16px */
+                border border-gray-300 
+                bg-white 
+                focus:outline-none focus:ring-2 focus:ring-green-400
+                text-gray-700
+              "
+            >
+              <option value="" disabled>
+                Elige tipo de usuario...
+              </option>
+              <option value="Persona">Persona</option>
+              <option value="Empresa">Empresa</option>
+            </select>
+          </div>
+
+
+          {/* PASSWORD */}
           <div>
             <label className="block text-sm font-semibold mb-1">Contraseña</label>
             <input
@@ -87,10 +117,9 @@ export default function Registrarse() {
             />
           </div>
 
+          {/* CONFIRM PASSWORD */}
           <div>
-            <label className="block text-sm font-semibold mb-1">
-              Verificar Contraseña
-            </label>
+            <label className="block text-sm font-semibold mb-1">Verificar Contraseña</label>
             <input
               type="password"
               value={confirmPassword}
@@ -101,14 +130,17 @@ export default function Registrarse() {
             />
           </div>
 
+          {/* ERROR */}
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
+          {/* SUBMIT */}
           <button
             type="submit"
             className="bg-white text-gray-800 font-semibold py-2 rounded-lg shadow-md hover:bg-gray-200 transition"
           >
             Siguiente
           </button>
+
         </form>
       </div>
     </div>
