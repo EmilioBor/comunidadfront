@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { postDonacion } from "@/lib/api/donacionApi";
+import { postDonacion } from "@/app/lib/api/donacionApi";
 import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
 
 // Interface para los tipos de donación
