@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { postDonacion } from "@/lib/api/donacionApi";
-import { getDonacionTipos } from "@/lib/api/donacionTipoApi";
+import { crearDonacion, obtenerTiposDonacion } from "./actions";
 
-// Interface para los tipos de donación
 interface DonacionTipo {
   id: number;
   descripcion: string;
@@ -17,25 +15,32 @@ export default function CrearDonacion() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarChat, setMostrarChat] = useState(false);
   const [cargando, setCargando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
 
   const perfilDestino = {
-    id: 2,
-    nombre: "adas", 
-    email: "contacto@caritaslp.org",
+    id: 13,
+    nombre: "Lucas Cambas", 
+    email: "lucas@hotmail.com",
     imagen: "/perfil-donacion.jpg",
   };
 
   useEffect(() => {
     const cargarTiposDonacion = async () => {
       try {
-        const tipos = await getDonacionTipos();
-        console.log("📋 Tipos de donación cargados:", tipos);
-        setTiposDonacion(tipos);
-        if (tipos.length > 0) {
-          setTipoDonacionId(tipos[0].id.toString());
+        const resultado = await obtenerTiposDonacion();
+        
+        if (resultado.success) {
+          console.log("📋 Tipos de donación cargados:", resultado.data);
+          setTiposDonacion(resultado.data);
+          if (resultado.data.length > 0) {
+            setTipoDonacionId(resultado.data[0].id.toString());
+          }
+        } else {
+          console.error("Error al cargar tipos:", resultado.error);
+          alert("Error al cargar tipos de donación");
         }
       } catch (error) {
-        console.error("Error al cargar tipos de donación:", error);
+        console.error("Error inesperado:", error);
       } finally {
         setCargando(false);
       }
@@ -46,37 +51,40 @@ export default function CrearDonacion() {
 
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEnviando(true);
 
     if (!tipoDonacionId) {
       alert("Por favor selecciona un tipo de donación");
+      setEnviando(false);
       return;
     }
 
-    // ESTRUCTURA CORRECTA según tu modelo Entity Framework
     const donacion = {
       descripcion: descripcion || "Donación realizada desde publicación",
       fechaHora: new Date().toISOString(),
-      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId), // ← NOMBRE EXACTO del modelo
-      perfilIdPerfil: perfilDestino.id, // ← NOMBRE EXACTO del modelo
+      donacionTipoIdDonacionTipo: parseInt(tipoDonacionId),
+      perfilIdPerfil: perfilDestino.id,
     };
 
     console.log("📦 Donación enviada:", donacion);
-    console.log("🔍 Propiedades:", {
-      donacionTipoIdDonacionTipo: donacion.donacionTipoIdDonacionTipo,
-      perfilIdPerfil: donacion.perfilIdPerfil
-    });
 
     try {
-      await postDonacion(donacion);
+      const resultado = await crearDonacion(donacion);
 
-      setMostrarModal(true);
-      setDescripcion("");
-      setTipoDonacionId(tiposDonacion[0]?.id?.toString() || "");
-      setMostrarChat(true);
+      if (resultado.success) {
+        setMostrarModal(true);
+        setDescripcion("");
+        setTipoDonacionId(tiposDonacion[0]?.id?.toString() || "");
+        setMostrarChat(true);
+      } else {
+        console.error("❌ Error del servidor:", resultado.error);
+        alert(`Error: ${resultado.message}`);
+      }
     } catch (error) {
       console.error("❌ Error al enviar la donación:", error);
-      console.error("❌ Datos enviados:", donacion);
-      alert("Error al enviar la donación. Revisa la consola para más detalles.");
+      alert("Error inesperado al enviar la donación");
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -143,9 +151,17 @@ export default function CrearDonacion() {
 
           <button
             type="submit"
-            className="bg-sky-600 hover:bg-sky-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+            disabled={enviando}
+            className="bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center"
           >
-            Enviar Donación
+            {enviando ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Enviando...
+              </>
+            ) : (
+              "Enviar Donación"
+            )}
           </button>
         </form>
 
