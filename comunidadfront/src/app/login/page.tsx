@@ -19,7 +19,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     try {
       const response = await login(data);
 
-        if (response && response.token) {
+        if (response && response.ok) {
           router.push("/Inicio"); // Redirigir después del login exitoso
         } else {
           setError("Correo o contraseña inválidos");
