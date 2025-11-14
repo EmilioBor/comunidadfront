@@ -1,12 +1,27 @@
 'use server'
 
-import { setSessionToken } from "../lib/api/session" 
+import { setSessionToken } from "../lib/api/session";
 import { loginAPI } from "@/app/lib/api/auth";
 
-const ROOT_PATH = "/example"
+export async function login(formData) {
 
-export async function login(data){
-   
-   return await setSessionToken(data);
-   // return await loginAPI(data);
+  const res = await loginAPI(formData);
+
+  if (!res?.token) {
+    throw new Error("La respuesta de la API no contiene token");
+  }
+
+  if (!res.esCorrecto) {
+    throw new Error("Credenciales incorrectas");
+  }
+
+  // Guardamos todo en sesión
+  await setSessionToken({
+    token: res.token,
+    id: res.id,
+    email: res.email,
+    rol: res.rol
+  });
+
+  return { ok: true };
 }

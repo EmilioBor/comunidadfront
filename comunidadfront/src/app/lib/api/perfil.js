@@ -18,3 +18,17 @@ export async function CrearPerfil(data) {
         throw error;  // Propaga el error para manejarlo en el cliente
     }
 }
+
+// Obtener perfil por ID de usuario
+export async function GetUserByPerfil(id) {
+    try {
+        const url = `http://localhost:7168/api/Perfil/v1/perfil/user/${id}`;
+
+        const response = await axios.get(url);
+        return response.data;
+
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+    }
+}

@@ -1,4 +1,3 @@
-// /app/api/login/route.js
 import { NextResponse } from "next/server";
 import { login } from "@/app/login/action";
 
@@ -6,7 +5,6 @@ export async function POST(req) {
   try {
     const data = await req.json();
 
-    // `login` es una server action que puede lanzar errores.
     const result = await login(data);
 
     if (result && result.ok) {
