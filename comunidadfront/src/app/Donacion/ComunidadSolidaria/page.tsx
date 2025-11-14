@@ -40,7 +40,6 @@ export default function DonacionComunidadSolidaria() {
           
           console.log("🔍 Parámetro tipo recibido:", tipoParam);
           
-          // Lógica para seleccionar tipo basado en parámetro
           if (tipoParam && resultado.data.length > 0) {
             const tipoEncontrado = resultado.data.find(tipo => 
               tipo.descripcion.toLowerCase() === tipoParam.toLowerCase()
@@ -149,7 +148,6 @@ export default function DonacionComunidadSolidaria() {
           <p className="text-gray-500 text-sm">{perfilDestino.email}</p>
         </div>
 
-        {/* MOSTRAR TIPO SELECCIONADO SI VIENE DESDE BOTONES */}
         {tipoParam && tipoSeleccionado && (
           <div className="mb-6 p-4 bg-sky-100 rounded-lg border border-sky-300">
             <p className="text-sky-700 font-medium text-center text-lg">
