@@ -1,7 +1,7 @@
 "use server";
 
 import { GetLocalidadesByID } from "@/app/lib/api/localidad";
-
+import { getPublicacionPerfil } from "@/app/lib/api/publicacion";
 export async function obtenerLocalidadesByID(id) {
   try {
     if (!id) {
@@ -21,3 +21,8 @@ export async function obtenerLocalidadesByID(id) {
     throw new Error("No se pudo obtener la localidad");
   }
 }
+
+export async function obtenerPublicacion(params) {
+    return await getPublicacionPerfil(params);
+} 
+
