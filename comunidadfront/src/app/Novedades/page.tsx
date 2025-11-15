@@ -3,32 +3,30 @@
 import { useEffect, useState } from "react";
 import Footer from "../Inicio/components/Footer";
 import Navbar from "../Inicio/components/Navbar";
+import {obtenerNovedades} from "./action"
 
 interface Novedad {
   id: number;
   titulo: string;
   descripcion: string;
   fecha: string;
-  imagenUrl: string;
+  imagen: string;
 }
 
 export default function Novedades() {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const cargarNovedades = async () => {
       try {
-        const res = await fetch(
-          "https://localhost:7168/api/Novedad/api/v1/agrega/novedad"
-        );
-        if (!res.ok) throw new Error("Error al obtener novedades");
-        const data = await res.json();
-        setNovedades(data);
-      } catch (err) {
+        const res = await obtenerNovedades();
+        setNovedades(res);
+      }
+      catch (err){
         console.error(err);
       }
     };
-    fetchData();
+    cargarNovedades(); 
   }, []);
 
   return (
@@ -54,7 +52,7 @@ export default function Novedades() {
                 className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col"
               >
                 <img
-                  src={novedad.imagenUrl}
+                  src={`data:image/jpeg;base64,${novedad.imagen}`}
                   alt={novedad.titulo}
                   className="w-full h-[200px] object-cover"
                 />

@@ -18,3 +18,17 @@ export async function CreaNovedad(formData) {
     throw err;
   }
 }
+
+export async function getNovedades() {
+  try {
+        const res = await fetch(
+          "https://localhost:7168/api/Novedad/api/v1/novedades"
+        );
+        if (!res.ok) throw new Error("Error al obtener novedades");
+        const data = await res.json();
+        return data;
+      } catch (err) {
+        console.error(err);
+      }
+
+}
