@@ -13,7 +13,7 @@ export default function LoginPage() {
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  const data = { Email: email, Password: password };
+  const data = { email, password };
 
 
     try {
@@ -50,6 +50,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <label className="block text-sm font-semibold mb-1">Correo</label>
             <input
               type="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -62,6 +63,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             <label className="block text-sm font-semibold mb-1">Contraseña</label>
             <input
               type="password"
+              name="password"
               value={password}
               onChange={(e) => setContaseña(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"

@@ -1,10 +1,11 @@
 import "server-only";
 import { cookies } from "next/headers";
 
-export function getSession() {
-  const cookieStore = cookies();
-  const tokenCookie = cookieStore.get("auth_token");
+// Obtener sesión
+export async function getSession() {
+  const cookieStore = await cookies(); // <<-- obligatorio
 
+  const tokenCookie = cookieStore.get("auth_token");
   if (!tokenCookie) return null;
 
   return {
@@ -15,25 +16,24 @@ export function getSession() {
   };
 }
 
-export function setSessionToken({ token, id, email, rol }) {
-  const cookieStore = cookies();
+// Guardar sesión
+export async function setSessionToken({ token, id, email, rol }) {
+  const cookieStore = await cookies(); // <<-- obligatorio
 
-  // Cookie httpOnly con el token (no accesible desde JS en el cliente)
-  cookieStore.set({
-    name: "auth_token",
-    value: token,
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24, // 1 día
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-  });
+  // Token httpOnly
+  if (token) {
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 día
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
 
-  // Información adicional (no httpOnly) si necesitas leerla desde cliente
+  // Email accesible desde cliente
   if (email) {
-    cookieStore.set({
-      name: "auth_email",
-      value: String(email),
+    cookieStore.set("auth_email", String(email), {
       httpOnly: false,
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -42,10 +42,9 @@ export function setSessionToken({ token, id, email, rol }) {
     });
   }
 
+  // ID accesible desde cliente
   if (id) {
-    cookieStore.set({
-      name: "auth_id",
-      value: String(id),
+    cookieStore.set("auth_id", String(id), {
       httpOnly: false,
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -54,10 +53,9 @@ export function setSessionToken({ token, id, email, rol }) {
     });
   }
 
+  // Rol accesible desde cliente
   if (rol) {
-    cookieStore.set({
-      name: "auth_rol",
-      value: String(rol),
+    cookieStore.set("auth_rol", String(rol), {
       httpOnly: false,
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -69,8 +67,15 @@ export function setSessionToken({ token, id, email, rol }) {
   return true;
 }
 
-export function logout() {
-  const cookieStore = cookies();
+// Logout
+export async function logout() {
+  const cookieStore = await cookies();
+
   cookieStore.delete("auth_token");
   cookieStore.delete("auth_email");
+  cookieStore.delete("auth_id");
+  cookieStore.delete("auth_rol");
+
+  return true;
 }
+
