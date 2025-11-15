@@ -20,15 +20,23 @@ export async function CrearPerfil(data) {
 }
 
 // Obtener perfil por ID de usuario
-export async function GetUserByPerfil(id) {
+    export async function GetUserByPerfil(idUsuario) {
     try {
-        const url = `http://localhost:7168/api/Perfil/v1/perfil/user/${id}`;
+        const url = `https://localhost:7168/api/Perfil/v1/perfil/user/${idUsuario}`;
+        console.log("GET:", url);
 
         const response = await axios.get(url);
+
         return response.data;
 
     } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error en GetUserByPerfil:", error);
+
+        // Si el backend devuelve 404 → el usuario no tiene perfil aún
+        if (error.response?.status === 404) {
+        return null;  // manejalo en el front
+        }
+
         throw error;
     }
-}
+    }
