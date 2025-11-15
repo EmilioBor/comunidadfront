@@ -30,47 +30,66 @@ export default function CrearNovedad() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
 
-    if (!titulo || !descripcion || !fecha) {
-      setError("Todos los campos son obligatorios.");
-      return;
+  if (!titulo || !descripcion || !fecha) {
+    setError("Todos los campos son obligatorios.");
+    return;
+  }
+
+  if (!perfilId) {
+    setError("No se pudo identificar el perfil.");
+    return;
+  }
+
+  if (!imagen) {
+    setError("Debes subir una imagen.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Crear FormData
+    const formData = new FormData();
+    formData.append("Titulo", titulo);
+    formData.append("Descripcion", descripcion);
+    const fechaUTC = new Date(fecha).toISOString();
+    formData.append("Fecha", fechaUTC);
+
+    formData.append("PerfilIdPerfil", perfilId); // coincide con tu DTO
+    formData.append("files", imagen); // coincide con IFormFile files en backend
+
+    // Mostrar contenido de FormData en consola para debug
+    console.log("Formulario preparado para enviar:");
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(key, value.name, value.type, value.size + " bytes");
+      } else {
+        console.log(key, value);
+      }
     }
 
-    if (!perfilId) {
-      setError("No se pudo identificar el perfil.");
-      return;
-    }
+    const res = await addNovedad(formData);
 
-    if (!imagen) {
-      setError("Debes subir una imagen.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("Titulo", titulo);
-      formData.append("Descripcion", descripcion);
-      formData.append("Fecha", fecha);
-      formData.append("IdPerfil", perfilId.toString());
-      formData.append("Imagen", imagen);
-
-      const res = await addNovedad(formData);
+    if (res) {
       console.log("Novedad creada:", res);
-
       alert("Novedad creada con éxito!");
       router.push("/Perfil");
-    } catch (err) {
-      console.error(err);
-      setError("Error al crear la novedad.");
-    } finally {
-      setLoading(false);
+    } else {
+      setError("Error al crear la novedad. Intenta nuevamente.");
     }
-  };
+  } catch (err) {
+    console.error("Error en el registro:", err);
+    setError("Error de conexión con el servidor.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div
