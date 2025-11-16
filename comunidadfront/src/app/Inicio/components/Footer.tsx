@@ -1,4 +1,5 @@
 export default function Footer() {
+
   return (
     <footer className="bg-gray-800 text-white py-8 mt-12">
       <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-3 gap-8 text-center md:text-left">

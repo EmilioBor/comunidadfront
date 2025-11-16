@@ -22,7 +22,7 @@ export async function obtenerLocalidadesByID(id) {
   }
 }
 
-export async function obtenerPublicacion(params) {
-    return await getPublicacionPerfil(params);
+export async function obtenerPublicacion(data) {
+    return await getPublicacionPerfil(data);
 } 
 

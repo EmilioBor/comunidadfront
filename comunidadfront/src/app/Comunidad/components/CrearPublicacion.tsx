@@ -21,7 +21,11 @@ interface PublicacionTipo {
   descripcion: string;
 }
 
-const CrearPublicacion = () => {
+interface CrearPublicacionProps {
+  onNuevaPublicacion: (pub: any) => void; // Puede ajustar el tipo según tu DTO
+}
+
+const CrearPublicacion: React.FC<CrearPublicacionProps> = ({ onNuevaPublicacion }) => {
   const [perfil, setPerfil] = useState<PerfilType | null>(null);
   const [publicacionTipos, setPublicacionTipos] = useState<PublicacionTipo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,13 +112,11 @@ const CrearPublicacion = () => {
     form.append("DonacionIdDonacion", formData.donacionIdDonacion.toString());
     form.append("files", imagen);
 
-    console.log("Formulario preparado para enviar:", Object.fromEntries(form.entries()));
-
     try {
       const result = await addPublicacion(form);
-      console.log("✅ Publicación creada:", result);
       alert("Publicación creada correctamente");
 
+      // Limpiar formulario
       setFormData({
         titulo: "",
         descripcion: "",
@@ -124,6 +126,10 @@ const CrearPublicacion = () => {
       });
       setImagen(null);
       setImagenBase64(null);
+
+      // 🚀 Notificar al componente padre
+      if (onNuevaPublicacion) onNuevaPublicacion(result);
+
     } catch (err) {
       console.error("❌ Error al crear publicación:", err);
       alert("Error al crear publicación");
@@ -132,7 +138,6 @@ const CrearPublicacion = () => {
 
   return (
     <div className="bg-[#D9D9D9] text-black rounded-2xl p-4 flex flex-col gap-4 w-full max-w-3xl mx-auto">
-      {/* Cabecera */}
       <div className="flex items-center gap-3">
         <img
           src={perfil?.imagen ? `data:image/png;base64,${perfil.imagen}` : "/default-avatar.png"}
@@ -142,7 +147,6 @@ const CrearPublicacion = () => {
         <p className="text-black font-medium">{perfil?.razonSocial || "Perfil sin nombre"}</p>
       </div>
 
-      {/* Título */}
       <input
         type="text"
         name="titulo"
@@ -152,7 +156,6 @@ const CrearPublicacion = () => {
         className="bg-white rounded-lg p-2 text-black text-sm font-bold w-full"
       />
 
-      {/* Selección Tipo de Publicación */}
       <div className="flex flex-col gap-1">
         <label htmlFor="tipoDonacion" className="text-sm font-semibold">Tipo de Publicación</label>
         <select
@@ -169,7 +172,6 @@ const CrearPublicacion = () => {
         </select>
       </div>
 
-      {/* Descripción */}
       <textarea
         name="descripcion"
         value={formData.descripcion}
@@ -178,7 +180,6 @@ const CrearPublicacion = () => {
         className="bg-white p-2 rounded-lg text-black text-sm h-24 w-full"
       />
 
-      {/* Preview de imagen */}
       {imagenBase64 && (
         <img
           src={`data:image/png;base64,${imagenBase64}`}
@@ -187,7 +188,6 @@ const CrearPublicacion = () => {
         />
       )}
 
-      {/* Input de archivo */}
       <button
         type="button"
         onClick={() => document.getElementById("fileInput")?.click()}
@@ -202,7 +202,6 @@ const CrearPublicacion = () => {
         onChange={handleImagenChange}
       />
 
-      {/* Botón Publicar */}
       <button
         onClick={handleSubmit}
         className="bg-[#7DB575] text-white px-6 py-2 rounded-full mt-3 hover:bg-green-600 transition"
