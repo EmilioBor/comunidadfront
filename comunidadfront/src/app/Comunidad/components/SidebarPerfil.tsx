@@ -1,29 +1,63 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getPerfilById } from "../actions";
+
+import Image from "next/image";
+import Link from "next/link";
+import { GetUserByPerfil } from "@/app/lib/api/perfil";
+
+interface PerfilType {
+  id: number;
+  cuitCuil: number;
+  razonSocial: string;
+  descripcion: string;
+  cbu: number;
+  alias: string;
+  usuarioIdUsuario: number;
+  localidadIdLocalidad: number;
+  imagen: string;
+}
+
 
 const SidebarPerfil = () => {
-  const [perfil, setPerfil] = useState(null);
+  const [perfil, setPerfil] = useState<PerfilType | null>(null);
+  const [rol, setRol] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
+  const [error, setError] = useState<string | null>(null);
+  
+  
   useEffect(() => {
-    const fetchPerfil = async () => {
+    async function loadPerfil() {
       try {
-        const data = await getPerfilById(12); // reemplazar x el ID real del usuario
-        setPerfil(data);
+        // 🟦 1. Obtener usuario logeado desde tu session API
+        const me = await fetch("/api/user/me").then((r) => r.json());
+        console.log("me sidebar:", me);
+
+        setRol(me.rol);
+
+        // 🟦 2. Traer perfil desde actions, igual que en Perfil/page.tsx
+        const perfilData = await GetUserByPerfil(me.id);
+        console.log("perfil sidebar:", perfilData);
+
+        setPerfil(perfilData || null);
       } catch (err) {
-        setError("No se pudo cargar el perfil");
+        console.error("Error cargando SidebarPerfil:", err);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchPerfil();
+    loadPerfil();
   }, []);
 
-  if (loading) return <p>Cargando perfil...</p>;
-  if (error) return <p>{error}</p>;
+  if (loading)
+    return <p className="text-center mt-5 text-gray-600">Cargando perfil...</p>;
+
+  if (!perfil)
+    return (
+      <p className="text-center mt-5 text-red-600">
+        No se encontró el perfil del usuario.
+      </p>
+    );
 
   return (
     <aside className="bg-white rounded-2xl shadow-md overflow-hidden w-full max-w-xs">
@@ -54,3 +88,4 @@ const SidebarPerfil = () => {
 };
 
 export default SidebarPerfil;
+

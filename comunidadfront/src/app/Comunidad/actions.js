@@ -1,91 +1,46 @@
-const API_BASE_URL = "https://localhost:7168"; // ⚠️ ajustá esto según tu backend real
+'use server';
 
+import { getPublicacionTipo, getPublicacion } from "@/app/lib/api/publicacion";
+import { getPerfilNombre, getPerfilId } from "@/app/lib/api/perfil";
+import { getProvincias, getLocalidadesByProvincia, gethProvinciaById } from "../lib/api/provincia";
+import { GetLocalidadesByID } from "@/app/lib/api/localidad";
+
+export async function obtenerPublicacionTipo(params) {
+   return await getPublicacionTipo(params);
+}
+
+export async function obtenerPublicaciones() {
+  return await getPublicacion();
+}
+
+
+export async function obtenerPerfilNombre(params) {
+  return await getPerfilNombre(params);
+}
 // Obtener perfil por ID
-export const getPerfilById = async (id) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/Perfil/api/v1/perfil/id/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error al obtener el perfil: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("[getPerfilById] Error:", error);
-    throw error;
-  }
+export async function getPerfilById(id) {
+  return await getPerfilId(id);
 };
 
-// Obtener tipo donacion
-export const getDonacionTipos = async () => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/DonacionTipo/api/v1/donacionTipos`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-
-    if (!response.ok)
-      throw new Error(`Error al obtener tipos de donación: ${response.status}`);
-
-    return await response.json();
-  } catch (error) {
-    console.error("[getDonacionTipos] Error:", error);
-    throw error;
-  }
-};
 
 // Obtener todas las provincias
-export const fetchProvincias = async () => {
-  try {
-    const response = await fetch("/api/Provincia/api/v1/provincias");
-    if (!response.ok) throw new Error("Error al obtener provincias");
-    return await response.json();
-  } catch (error) {
-    console.error("fetchProvincias:", error);
-    return [];
-  }
+export async function fetchProvincias () {
+  return await getProvincias();
 };
 
 // Obtener todas las localidades de una provincia
-export const fetchLocalidadesByProvincia = async (provinciaId) => {
-  try {
-    const response = await fetch(`/api/Localidad/api/v1/localidads?provinciaId=${provinciaId}`);
-    if (!response.ok) throw new Error("Error al obtener localidades");
-    return await response.json();
-  } catch (error) {
-    console.error("fetchLocalidadesByProvincia:", error);
-    return [];
-  }
+export async function fetchLocalidadesByProvincia (provinciaId)  {
+  return await getLocalidadesByProvincia(provinciaId);
 };
 
 // Obtener provincia por ID
-export const fetchProvinciaById = async (id) => {
-  try {
-    const response = await fetch(`/api/Provincia/api/v1/provincia/id/${id}`);
-    if (!response.ok) throw new Error("Error al obtener provincia por id");
-    return await response.json();
-  } catch (error) {
-    console.error("fetchProvinciaById:", error);
-    return null;
-  }
+export async function fetchProvinciaById(id){
+    return  await gethProvinciaById(id);
 };
 
 // Obtener localidad por ID
-export const fetchLocalidadById = async (id) => {
-  try {
-    const response = await fetch(`/api/Localidad/api/v1/localidad/id/${id}`);
-    if (!response.ok) throw new Error("Error al obtener localidad por id");
-    return await response.json();
-  } catch (error) {
-    console.error("fetchLocalidadById:", error);
-    return null;
-  }
+export async function fetchLocalidadById(id){
+  return await GetLocalidadesByID(id);
 };
+
+
