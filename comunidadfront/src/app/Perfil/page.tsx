@@ -216,13 +216,13 @@ export default function Perfil() {
                     <div className="flex gap-2 mt-3">
                         <Link
                         href={`/Donacion/${pub.id}`}
-                        className="flex-1 bg-green-400 text-white py-2 rounded-lg text-center font-semibold hover:bg-green-500 transition"
+                        className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-green-500 transition"
                         >
                         Donar
                         </Link>
                         <Link
                         href={`/Perfil/Chat?perfil=${pub.nombrePerfilIdPerfil}`}
-                        className="flex-1 bg-blue-400 text-white py-2 rounded-lg text-center font-semibold hover:bg-blue-500 transition"
+                        className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-blue-500 transition"
                         >
                         Chat
                         </Link>
