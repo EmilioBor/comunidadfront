@@ -1,7 +1,9 @@
+// app/Donacion/Crear/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { crearDonacion, obtenerTiposDonacion } from "./actions";
+import { useRouter } from "next/navigation";
 
 interface DonacionTipo {
   id: number;
@@ -9,13 +11,14 @@ interface DonacionTipo {
 }
 
 export default function CrearDonacion() {
+  const router = useRouter();
   const [descripcion, setDescripcion] = useState("");
   const [tipoDonacionId, setTipoDonacionId] = useState("");
   const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [mostrarChat, setMostrarChat] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
 
   const perfilDestino = {
     id: 13,
@@ -30,17 +33,15 @@ export default function CrearDonacion() {
         const resultado = await obtenerTiposDonacion();
         
         if (resultado.success) {
-          console.log("📋 Tipos de donación cargados:", resultado.data);
           setTiposDonacion(resultado.data);
           if (resultado.data.length > 0) {
             setTipoDonacionId(resultado.data[0].id.toString());
           }
         } else {
-          console.error("Error al cargar tipos:", resultado.error);
-          alert("Error al cargar tipos de donación");
+          setError("Error al cargar tipos de donación");
         }
       } catch (error) {
-        console.error("Error inesperado:", error);
+        setError("Error inesperado al cargar datos");
       } finally {
         setCargando(false);
       }
@@ -52,9 +53,10 @@ export default function CrearDonacion() {
   const handleCrearDonacion = async (e: React.FormEvent) => {
     e.preventDefault();
     setEnviando(true);
+    setError("");
 
     if (!tipoDonacionId) {
-      alert("Por favor selecciona un tipo de donación");
+      setError("Por favor selecciona un tipo de donación");
       setEnviando(false);
       return;
     }
@@ -66,23 +68,16 @@ export default function CrearDonacion() {
       perfilIdPerfil: perfilDestino.id,
     };
 
-    console.log("📦 Donación enviada:", donacion);
-
     try {
       const resultado = await crearDonacion(donacion);
 
       if (resultado.success) {
         setMostrarModal(true);
-        setDescripcion("");
-        setTipoDonacionId(tiposDonacion[0]?.id?.toString() || "");
-        setMostrarChat(true);
       } else {
-        console.error("❌ Error del servidor:", resultado.error);
-        alert(`Error: ${resultado.message}`);
+        setError(`Error: ${resultado.message}`);
       }
     } catch (error) {
-      console.error("❌ Error al enviar la donación:", error);
-      alert("Error inesperado al enviar la donación");
+      setError("Error inesperado al enviar la donación");
     } finally {
       setEnviando(false);
     }
@@ -90,108 +85,121 @@ export default function CrearDonacion() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando tipos de donación...</p>
+      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed" 
+           style={{ backgroundImage: "url('/background-login.png')" }}>
+        <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-8 w-full max-w-md text-gray-800 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-3 text-gray-600 text-sm">Cargando tipos de donación...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 flex flex-col items-center py-10">
-      <div className="bg-white shadow-lg rounded-2xl p-8 w-[500px]">
-        <h2 className="text-2xl font-semibold text-center text-sky-700 mb-6">
-          Agregue su Donación
-        </h2>
-
-        <div className="flex flex-col items-center mb-6">
-          <img
-            src={perfilDestino.imagen}
-            alt="Perfil"
-            className="w-24 h-24 rounded-full object-cover mb-2 border-2 border-sky-300"
-          />
-          <h3 className="text-lg font-medium text-gray-800">
-            Donando a:{" "}
-            <span className="font-semibold">{perfilDestino.nombre}</span>
-          </h3>
-          <p className="text-gray-500 text-sm">{perfilDestino.email}</p>
+    <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4" 
+         style={{ backgroundImage: "url('/background-login.png')" }}>
+      
+      <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-6 w-full max-w-md text-gray-800">
+        
+        {/* Header */}
+        <div className="text-center mb-4">
+          <img src="/logo.png" alt="logo" className="w-10 h-10 mx-auto mb-2" />
+          <h1 className="text-xl font-bold">Realizar Donación</h1>
+          <h2 className="text-lg font-[cursive]">Comunidad Solidaria</h2>
         </div>
 
-        <form onSubmit={handleCrearDonacion} className="flex flex-col gap-4">
+        {/* Info del perfil */}
+        <div className="bg-white rounded-lg p-3 mb-4 border border-green-300 text-center">
+          <img src={perfilDestino.imagen} alt="Perfil" className="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-green-400" />
+          <h3 className="font-medium text-gray-800 text-sm">
+            Donando a: <span className="font-semibold">{perfilDestino.nombre}</span>
+          </h3>
+          <p className="text-gray-500 text-xs">{perfilDestino.email}</p>
+        </div>
+
+        <form onSubmit={handleCrearDonacion} className="space-y-4">
+          
+          {/* Descripción */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Descripción
-            </label>
+            <label className="block text-sm font-semibold mb-1">Descripción *</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg p-2 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-sky-400 text-gray-800"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Escribe una breve descripción de tu donación..."
+              placeholder="Describe tu donación..."
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-700 resize-none text-sm min-h-[80px]"
+              required
             />
           </div>
 
+          {/* Tipo de Donación */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Tipo de Donación
-            </label>
+            <label className="block text-sm font-semibold mb-1">Tipo de Donación *</label>
             <select
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-sky-400 text-gray-800"
               value={tipoDonacionId}
               onChange={(e) => setTipoDonacionId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-700 text-sm"
+              required
             >
+              <option value="" disabled>Selecciona un tipo...</option>
               {tiposDonacion.map((tipo) => (
-                <option key={tipo.id} value={tipo.id}>
-                  {tipo.descripcion}
-                </option>
+                <option key={tipo.id} value={tipo.id}>{tipo.descripcion}</option>
               ))}
             </select>
           </div>
 
-          <button
-            type="submit"
-            disabled={enviando}
-            className="bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center"
-          >
-            {enviando ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Enviando...
-              </>
-            ) : (
-              "Enviar Donación"
-            )}
-          </button>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded-lg text-center text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Botones */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg shadow hover:bg-gray-400 transition text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={enviando}
+              className="flex-1 bg-white text-gray-800 font-semibold py-2 rounded-lg shadow hover:bg-gray-200 transition text-sm disabled:bg-gray-200 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {enviando ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-800 mr-2"></div>
+                  Enviando...
+                </>
+              ) : (
+                "Enviar Donación"
+              )}
+            </button>
+          </div>
         </form>
 
-        {mostrarChat && (
-          <div className="mt-6 flex justify-center">
-            <button className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition">
-              💬 Ir al Chat con {perfilDestino.nombre}
-            </button>
+        {/* Modal de éxito */}
+        {mostrarModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-5 rounded-xl shadow-lg w-full max-w-xs text-center">
+              <h3 className="text-lg font-semibold text-green-700 mb-2">¡Éxito!</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Tu donación fue enviada a {perfilDestino.nombre}.
+              </p>
+              <button
+                onClick={() => {
+                  setMostrarModal(false);
+                  router.push("/Inicio");
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Aceptar
+              </button>
+            </div>
           </div>
         )}
       </div>
-
-      {mostrarModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-[350px] text-center">
-            <h3 className="text-lg font-semibold text-sky-700 mb-2">
-              ¡Donación enviada con éxito!
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Tu donación fue enviada al perfil {perfilDestino.nombre}.
-            </p>
-            <button
-              onClick={() => setMostrarModal(false)}
-              className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
