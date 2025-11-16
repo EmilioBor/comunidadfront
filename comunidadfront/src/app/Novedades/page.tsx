@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Footer from "../Inicio/components/Footer";
 import Navbar from "../Inicio/components/Navbar";
-import {obtenerNovedades} from "./action"
+import { obtenerNovedades } from "./action";
+import Link from "next/link";
 
 interface Novedad {
   id: number;
@@ -21,12 +22,11 @@ export default function Novedades() {
       try {
         const res = await obtenerNovedades();
         setNovedades(res);
-      }
-      catch (err){
+      } catch (err) {
         console.error(err);
       }
     };
-    cargarNovedades(); 
+    cargarNovedades();
   }, []);
 
   return (
@@ -34,13 +34,12 @@ export default function Novedades() {
       <div className="fixed top-0 left-0 w-full z-50">
         <Navbar />
       </div>
-        <main className="flex-grow">
+      <main className="flex-grow">
         <img
-        src="/seccionverde.png"
-        alt="Sección Verde"
-        className="w-full h-auto object-cover block mt-0 pt-0"
+          src="/seccionverde.png"
+          alt="Sección Verde"
+          className="w-full h-auto object-cover block mt-0 pt-0"
         />
-        
 
         {/* Sección de Novedades */}
         <section className="px-6 md:px-20 py-12">
@@ -67,12 +66,13 @@ export default function Novedades() {
                       year: "numeric",
                     })}
                   </p>
-                  <p className="text-gray-700 text-sm flex-grow line-clamp-3">
-                    {novedad.descripcion}
-                  </p>
-                  <button className="mt-4 bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700 self-start">
+
+                  <Link
+                    href={`/Novedades/${novedad.id}`}
+                    className="mt-4 bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700 self-start"
+                  >
                     Leer más
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
