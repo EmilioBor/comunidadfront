@@ -30,6 +30,5 @@ export async function getNovedades() {
       } catch (err) {
         console.error(err);
       }
-
-}
-
+    }
+    
