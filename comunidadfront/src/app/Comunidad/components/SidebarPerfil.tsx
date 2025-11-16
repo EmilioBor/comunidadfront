@@ -10,7 +10,7 @@ const SidebarPerfil = () => {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        const data = await getPerfilById(2); // reemplazar x el ID real del usuario
+        const data = await getPerfilById(12); // reemplazar x el ID real del usuario
         setPerfil(data);
       } catch (err) {
         setError("No se pudo cargar el perfil");
