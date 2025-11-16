@@ -37,7 +37,7 @@ interface Publicacion {
   nombreLocalidadIdLocalidad: string;
   nombrePerfilIdPerfil: string;
   nombrePublicacionTipoIdPublicacionTipo: string;
-  nombreDonacionIdDonacion: string;
+  nombreDonacionIdDonacion: 1;
 }
 
 export default function Perfil() {
