@@ -45,7 +45,8 @@ export async function CrearPerfil(data) {
     //obtener perfil por nombre
         export async function getPerfilNombre(data) {
         try {
-            const url = `https://localhost:7168/api/Perfil/v1/perfil/nombre/${data}`;
+            const encoded = encodeURIComponent(data); 
+            const url = `https://localhost:7168/api/Perfil/v1/perfil/nombre/${encoded}`;
             console.log("GET:", url);
 
             const response = await axios.get(url);

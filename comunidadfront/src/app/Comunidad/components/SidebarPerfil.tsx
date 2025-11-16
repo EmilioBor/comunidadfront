@@ -40,7 +40,7 @@ const SidebarPerfil = () => {
 
         setPerfil(perfilData || null);
       } catch (err) {
-        console.error("Error cargando SidebarPerfil:", err);
+        console.error(" ", err);
       } finally {
         setLoading(false);
       }
@@ -55,7 +55,7 @@ const SidebarPerfil = () => {
   if (!perfil)
     return (
       <p className="text-center mt-5 text-red-600">
-        No se encontró el perfil del usuario.
+        
       </p>
     );
 

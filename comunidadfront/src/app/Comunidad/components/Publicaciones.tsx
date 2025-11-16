@@ -1,65 +1,66 @@
-'use client';
-import React, { useEffect, useState } from 'react';
+"use client";
 
-// Simulamos las funciones de acción (en producción serían importadas de un archivo externo)
-const obtenerPublicacionTipo = (tipo: string) => {
-  // Lógica para obtener publicaciones filtradas por tipo
-  console.log(`Filtrando publicaciones por tipo: ${tipo}`);
-  // Llamada a API para obtener publicaciones filtradas
-};
+import { useEffect, useState } from "react";
+import { obtenerPublicaciones } from "../actions"; // Asegúrate de que esta función esté en el archivo correcto
+import { obtenerPerfilNombre } from "../actions"; // Función que obtiene los datos del perfil
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-const obtenerPublicaciones = async () => {
-  // Simulamos la llamada a la API para obtener todas las publicaciones
-  return [
-    {
-      id: 0,
-      titulo: 'Nueva colaboración con Caritas Argentina La Plata',
-      descripcion: 'Calle 4 entre 49 y 50 n° 883',
-      imagen: '/comedor.jpg',
-      fechaCreacion: '2025-11-16T19:38:05.889Z',
-      nombreLocalidadIdLocalidad: 'La Plata',
-      nombrePerfilIdPerfil: 'Pedro Perez',
-      nombrePublicacionTipoIdPublicacionTipo: 'Donacion',
-      nombreDonacionIdDonacion: '1',
-    },
-  ];
-};
 
-const obtenerPerfilNombre = async (razonSocial: string) => {
-  // Simulamos la llamada a la API para obtener el perfil
-  return {
-    razonSocial: 'Pedro Perez',
-    imagen: '/default-avatar.png',
+interface Publicacion {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  imagen: string;
+  fechaCreacion: string;
+  nombreLocalidadIdLocalidad: string;
+  nombrePerfilIdPerfil: string; // ID del perfil que publicó
+  nombrePublicacionTipoIdPublicacionTipo: string;
+  nombreDonacionIdDonacion: string;
+  perfilData?: {
+    razonSocial: string;
+    imagen: string;
   };
-};
+}
 
-const Comunidad_Publicacion = () => {
-  const [publicaciones, setPublicaciones] = useState<any[]>([]);
-  const [perfil, setPerfil] = useState<any>({});
-  const [selectedTipo, setSelectedTipo] = useState<string>('Donacion'); // Estado para tipo de publicación seleccionado
+export default function Perfil() {
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
+  const [selectedTipo, setSelectedTipo] = useState<string>(''); // Tipo de publicación seleccionado
+  const router = useRouter();
 
-  // Obtén las publicaciones al cargar el componente
-  useEffect(() => {
-    const fetchData = async () => {
-      const publicacionesData = await obtenerPublicaciones();
-      setPublicaciones(publicacionesData);
-      // Cargar el perfil de la primera publicación (deberías modificar esto si es necesario)
-      const perfilData = await obtenerPerfilNombre(publicacionesData[0].nombrePerfilIdPerfil);
-      setPerfil(perfilData);
-    };
-    fetchData();
-  }, []);
+  
+const pathname = usePathname();
 
-  // Filtrar publicaciones por tipo
+useEffect(() => {
+  const load = async () => {
+    const pubs = await obtenerPublicaciones();
+    
+    for (let pub of pubs) {
+      const perfilData = await obtenerPerfilNombre(pub.nombrePerfilIdPerfil);
+      pub.perfilData = perfilData;
+    }
+
+    setPublicaciones(pubs);
+  };
+
+  load();
+}, [pathname]);
+
+  // Filtrar las publicaciones por tipo
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    obtenerPublicacionTipo(tipo);
   };
 
+  if (!publicaciones.length) {
+    return <p className="text-center mt-10 text-lg">Cargando publicaciones...</p>;
+  }
+
   return (
-    <div className="bg-[#D9D9D9] rounded-2xl p-4 flex flex-col gap-3 w-full">
+    <div className="bg-[#D9D9D9] p-4 rounded-2xl flex flex-col gap-4">
+      <h1 className="font-semibold text-black text-xl text-center mb-4">Publicaciones</h1>
+      
       {/* Botones de filtro */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex justify-center gap-3 mb-4">
         <button
           onClick={() => handleTipoChange('Donacion')}
           className="bg-[#7DB575] text-white px-4 py-2 rounded-full hover:bg-green-600 transition"
@@ -80,52 +81,52 @@ const Comunidad_Publicacion = () => {
         </button>
       </div>
 
-      {/* Publicaciones */}
+      {/* Mostrar las publicaciones filtradas o todas si no se aplica filtro */}
       {publicaciones
-        .filter((pub) => pub.nombrePublicacionTipoIdPublicacionTipo === selectedTipo)
-        .map((publicacion) => (
-          <div key={publicacion.id} className="bg-white rounded-2xl p-3 mb-4">
-            {/* Encabezado */}
-            <div className="flex justify-between items-center">
+        .filter((pub) => !selectedTipo || pub.nombrePublicacionTipoIdPublicacionTipo === selectedTipo)
+        .map((pub) => (
+          <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
+            {/* Encabezado con el nombre y la imagen del autor de la publicación */}
+            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={perfil.imagen || '/default-avatar.png'}
-                  alt="Foto perfil"
+                  src={`data:image/jpeg;base64,${pub.perfilData?.imagen}`}
+                  alt="Imagen del autor"
                   className="w-8 h-8 rounded-full object-cover"
                 />
                 <p
-                  className="font-medium text-gray-800 cursor-pointer"
+                  className="font-medium text-black cursor-pointer"
                   onClick={() => window.location.href = "/Perfil"}
                 >
-                  {perfil.razonSocial}
+                  {pub.perfilData?.razonSocial || 'Autor Desconocido'}
                 </p>
               </div>
-              {/* Tres puntos para reportar publicación */}
               <div className="relative group">
                 <button className="text-gray-600 hover:text-gray-700 text-xl leading-none">
                   ⋮
                 </button>
-                <div className="absolute hidden group-hover:block bg-white border p-2 rounded-md">
+                <div className="absolute hidden text-black group-hover:block bg-white border p-2 rounded-md">
                   <p>Reportar publicación</p>
                 </div>
               </div>
             </div>
 
-            {/* Publicación */}
-            <div className="mt-3">
-              <p className="text-sm text-gray-800 mb-3">
-                {publicacion.titulo}<br />
-                {publicacion.descripcion}
-              </p>
-              <img
-                src={publicacion.imagen}
-                alt="Imagen publicación"
-                className="rounded-xl w-full object-cover"
-              />
-            </div>
+            {/* Contenido de la publicación */}
+            <h3 className="font-bold text-xl mb-2 text-black">{pub.titulo}</h3>
+            <p className="text-sm text-black mb-3">{pub.descripcion}</p>
 
-            {/* Botones */}
-            <div className="flex justify-end gap-3 mt-3">
+            {/* Mostrar la fecha de creación y la localidad */}
+            <p className="text-xs text-gray-500 mb-3">Fecha: {new Date(pub.fechaCreacion).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-500 mb-3">Localidad: {pub.nombreLocalidadIdLocalidad}</p>
+
+            <img
+              src={`data:image/jpeg;base64,${pub.imagen}`}
+              alt="Imagen publicación"
+              className="rounded-xl w-full object-cover mb-3"
+            />
+
+            {/* Botones de interacción */}
+            <div className="flex justify-end gap-3">
               <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">
                 Donar
               </button>
@@ -137,6 +138,4 @@ const Comunidad_Publicacion = () => {
         ))}
     </div>
   );
-};
-
-export default Comunidad_Publicacion;
+}

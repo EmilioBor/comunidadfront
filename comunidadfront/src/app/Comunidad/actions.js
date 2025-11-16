@@ -1,6 +1,6 @@
 'use server';
 
-import { getPublicacionTipo, getPublicacion } from "@/app/lib/api/publicacion";
+import { getPublicacionTipo, getPublicacion, crearPublicacion } from "@/app/lib/api/publicacion";
 import { getPerfilNombre, getPerfilId } from "@/app/lib/api/perfil";
 import { getProvincias, getLocalidadesByProvincia, gethProvinciaById } from "../lib/api/provincia";
 import { GetLocalidadesByID } from "@/app/lib/api/localidad";
@@ -44,3 +44,10 @@ export async function fetchLocalidadById(id){
 };
 
 
+export async function addPublicacion (data) {
+  return await crearPublicacion(data);
+}
+
+export async function getPublicacionTipos() {
+  return await getPublicacionTipo();
+}
