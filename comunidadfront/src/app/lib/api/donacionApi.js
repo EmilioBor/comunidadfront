@@ -5,7 +5,7 @@ const BASE_URL = 'https://localhost:7168/api/Donacion/api/v1';
 // Obtener todas las donaciones
 export async function getDonaciones() {
     try {
-        const response = await axios.get(`${BASE_URL}/donaciones`, {
+        const response = await axios.get(`${BASE_URL}/donacions`, {
             httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false })
         });
         return response.data;
@@ -72,3 +72,4 @@ export async function deleteDonacion(id) {
         throw error;
     }
 }
+
