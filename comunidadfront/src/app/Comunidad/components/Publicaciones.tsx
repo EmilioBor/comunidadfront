@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { obtenerPublicaciones, obtenerPerfilNombre } from "../actions";
 import CrearPublicacion from "./CrearPublicacion";
+import Link from "next/link";
 
 interface Publicacion {
   id: number;
@@ -46,7 +47,6 @@ export default function Perfil() {
     <div className="bg-[#D9D9D9] p-4 rounded-2xl flex flex-col gap-4">
       <h1 className="font-semibold text-black text-xl text-center mb-4">Publicaciones</h1>
 
-
       {/* Filtros */}
       <div className="flex justify-center gap-3 mb-4">
         <button onClick={() => setSelectedTipo('Donacion')} className="bg-[#7DB575] text-white px-4 py-2 rounded-full hover:bg-green-600 transition">Donación</button>
@@ -66,8 +66,13 @@ export default function Perfil() {
               </div>
               <div className="relative group">
                 <button className="text-gray-600 hover:text-gray-700 text-xl leading-none">⋮</button>
-                <div className="absolute hidden text-black group-hover:block bg-white border p-2 rounded-md">
-                  <p>Reportar publicación</p>
+                <div className="absolute right-0 hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[150px]">
+                  <Link 
+                    href={`/Reporte?publicacionId=${pub.id}`}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  >
+                    Reportar publicación
+                  </Link>
                 </div>
               </div>
             </div>
