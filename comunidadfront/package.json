@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
     "axios": "^1.13.2",
     "iron-session": "^8.0.4",
     "lucide-react": "^0.544.0",
