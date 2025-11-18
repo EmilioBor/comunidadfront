@@ -1,7 +1,7 @@
 // app/Comunidad/components/Publicaciones.tsx
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { obtenerPublicaciones } from "../actions";
 import CrearPublicacion from "./CrearPublicacion";
 import Link from "next/link";
@@ -22,6 +22,8 @@ export default function Perfil() {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [selectedTipo, setSelectedTipo] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const loadPublicaciones = async () => {
     try {
@@ -42,6 +44,29 @@ export default function Perfil() {
   const handleNuevaPublicacion = (pub: Publicacion) => {
     setPublicaciones(prev => [pub, ...prev]);
   };
+
+  const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevenir que el evento llegue al document
+    setMenuAbierto(menuAbierto === publicacionId ? null : publicacionId);
+  };
+
+  const cerrarMenu = () => {
+    setMenuAbierto(null);
+  };
+
+  // Cerrar menú al hacer click fuera de él - CORREGIDO
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuAbierto(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -80,16 +105,31 @@ export default function Perfil() {
                   {pub.nombrePerfilIdPerfil}
                 </p>
               </div>
-              <div className="relative group">
-                <button className="text-gray-600 hover:text-gray-700 text-xl leading-none">⋮</button>
-                <div className="absolute right-0 hidden group-hover:block bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[150px]">
-                  <Link 
-                    href={`/Reporte?publicacionId=${pub.id}`}
-                    className="block px-3 py-1 hover:bg-gray-100 rounded text-sm whitespace-nowrap text-black"
+              
+              {/* Menú de tres puntos - CORREGIDO */}
+              <div className="relative" ref={menuRef}>
+                <button 
+                  onClick={(e) => toggleMenu(pub.id, e)}
+                  className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-all duration-200 text-xl leading-none flex items-center justify-center w-8 h-8"
+                  title="Opciones"
+                >
+                  ⋮
+                </button>
+                
+                {/* Menú desplegable */}
+                {menuAbierto === pub.id && (
+                  <div 
+                    className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[150px] animate-in fade-in-0 zoom-in-95 duration-200"
                   >
-                    Reportar 
-                  </Link>
-                </div>
+                    <Link 
+                      href={`/Reporte?publicacionId=${pub.id}`}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded text-sm text-black transition-colors duration-150"
+                      onClick={cerrarMenu}
+                    >
+                      <span>Reportar...</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
