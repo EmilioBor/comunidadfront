@@ -85,3 +85,35 @@ export const getPerfilId = async (id) => {
     throw error;
   }
 };
+
+// Editar perfil
+export async function actualizarPerfilAPI(perfilId, datosPerfil) {
+    try {
+        const url = `https://localhost:7168/api/Perfil/api/v1/editar/${perfilId}`;
+        console.log("PUT con JSON:", url);
+        console.log("Datos:", datosPerfil);
+
+        const response = await axios.put(url, datosPerfil, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            httpsAgent: new (require('https')).Agent({ 
+                rejectUnauthorized: false 
+            })
+        });
+
+        console.log("✅ Perfil actualizado exitosamente");
+        return response.data;
+
+    } catch (error) {
+        console.error("Error en actualizarPerfilAPI:", error);
+        console.error("Status:", error.response?.status);
+        console.error("Data:", error.response?.data);
+
+        if (error.response?.status === 404) {
+            return null;
+        }
+
+        throw error;
+    }
+}
