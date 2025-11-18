@@ -1,4 +1,4 @@
-// app/Perfil/EditarPublicacion/[id]/page.tsx - COMPLETO CORREGIDO
+// app/Perfil/EditarPublicacion/[id]/page.tsx - CON BÚSQUEDA MEJORADA
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -18,6 +18,9 @@ interface PublicacionType {
   perfilIdPerfil: number;
   publicacionTipoIdPublicacionTipo: number;
   donacionIdDonacion?: number;
+  nombreLocalidadIdLocalidad?: string;
+  nombrePerfilIdPerfil?: string;
+  nombrePublicacionTipoIdPublicacionTipo?: string;
 }
 
 interface Localidad {
@@ -154,6 +157,11 @@ export default function EditarPublicacionPage() {
   const seleccionarLocalidad = (localidad: Localidad) => {
     setLocalidadSeleccionada(localidad);
     setBusquedaLocalidad(`${localidad.nombre}, ${localidad.nombreProvinciaIdProvincia}`);
+    setMostrarDropdown(false);
+  };
+
+  const limpiarBusqueda = () => {
+    setBusquedaLocalidad("");
     setMostrarDropdown(false);
   };
 
@@ -380,12 +388,21 @@ export default function EditarPublicacionPage() {
               </select>
             </div>
 
-            {/* Localidad */}
+            {/* Localidad con buscador MEJORADO */}
             <div className="relative">
               <label className="block text-sm font-semibold mb-1 text-gray-800">
                 Localidad 
               </label>
               
+              {/* Mostrar localidad actual si existe */}
+              {localidadSeleccionada && !mostrarDropdown && (
+                <div className="mb-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-800">
+                    <strong>Localidad actual:</strong> {localidadSeleccionada.nombre}, {localidadSeleccionada.nombreProvinciaIdProvincia}
+                  </p>
+                </div>
+              )}
+
               <div className="relative">
                 <input
                   type="text"
@@ -396,8 +413,22 @@ export default function EditarPublicacionPage() {
                     setMostrarDropdown(true);
                   }}
                   onFocus={() => setMostrarDropdown(true)}
+                  onBlur={() => setTimeout(() => setMostrarDropdown(false), 200)}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-800"
                 />
+                
+                {/* Botón para limpiar búsqueda */}
+                {busquedaLocalidad && (
+                  <button
+                    type="button"
+                    onClick={limpiarBusqueda}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
                 
                 {mostrarDropdown && localidadesFiltradas.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -405,7 +436,7 @@ export default function EditarPublicacionPage() {
                       <div
                         key={localidad.id}
                         onClick={() => seleccionarLocalidad(localidad)}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
                       >
                         <div className="font-medium text-gray-800">{localidad.nombre}</div>
                         <div className="text-xs text-gray-600">{localidad.nombreProvinciaIdProvincia}</div>
@@ -413,7 +444,20 @@ export default function EditarPublicacionPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Mensaje cuando no hay resultados */}
+                {mostrarDropdown && busquedaLocalidad && localidadesFiltradas.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                    <div className="px-3 py-2 text-gray-500 text-sm">
+                      No se encontraron localidades para "{busquedaLocalidad}"
+                    </div>
+                  </div>
+                )}
               </div>
+              
+              <p className="text-xs text-gray-600 mt-1">
+                Escribe para buscar localidades. Se mostrará la provincia automáticamente.
+              </p>
             </div>
 
             {error && (
