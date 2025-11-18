@@ -96,3 +96,32 @@ export async function addPublicacion (data) {
 export async function getPublicacionTipos() {
   return await getPublicacionTipo();
 }
+
+//Obtener todas las localidades (esta es la que falta)
+export async function fetchLocalidades() {
+  try {
+    // Si tienes la función GetLocalidadesApi en tu API, úsala:
+    if (typeof GetLocalidadesApi !== 'undefined') {
+      return await GetLocalidadesApi();
+    } else {
+      // Si no existe, crea una implementación directa
+      const response = await fetch('https://localhost:7168/api/Localidad/api/v1/localidads', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const localidades = await response.json();
+      return localidades;
+    }
+  } catch (error) {
+    console.error('Error en fetchLocalidades:', error);
+    // Retornar array vacío para evitar errores en la UI
+    return [];
+  }
+}

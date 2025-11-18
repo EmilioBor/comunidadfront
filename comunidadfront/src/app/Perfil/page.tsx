@@ -105,20 +105,20 @@ export default function Perfil() {
           <div className="mt-10 flex flex-col w-full gap-4">
             <Link
               href="/Perfil/Donaciones"
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black"
+              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors"
             >
               Donaciones
             </Link>
             <Link
               href="/Perfil/Chat"
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black"
+              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors"
             >
               Chats
             </Link>
             {rol === "Empresa" && (
               <Link
                 href={`/Perfil/CrearNovedad/?idPerfil=${perfil.id}`}
-                className="bg-blue-400 hover:bg-blue-500 py-2 rounded-lg text-center text-white font-semibold"
+                className="bg-blue-400 hover:bg-blue-500 py-2 rounded-lg text-center text-white font-semibold transition-colors"
               >
                 Crear Novedad
               </Link>
@@ -129,7 +129,7 @@ export default function Perfil() {
         {/* COLUMNA CENTRAL */}
         <main className="w-3/4 p-8 flex flex-col gap-8">
           {/* INFORMACIÓN DEL PERFIL */}
-          <section className="bg-gray-200 p-8 rounded-xl w-full text-sm">
+          <section className="bg-gray-200 p-8 rounded-xl w-full text-sm relative">
             <div className="border border-[#D9D9D9] bg-white p-6 rounded-lg">
               <div className="grid grid-cols-2 gap-y-4">
                 <p className="font-bold text-black">{perfil.razonSocial}</p>
@@ -153,6 +153,16 @@ export default function Perfil() {
               <div className="mt-6">
                 <p className="font-bold text-black">Descripción:</p>
                 <p className="text-black">{perfil.descripcion}</p>
+              </div>
+              
+              {/* BOTÓN EDITAR EN LA PARTE INFERIOR DERECHA */}
+              <div className="flex justify-end mt-6">
+                <Link
+                  href="/Perfil/Editar"
+                  className="bg-yellow-400 hover:bg-yellow-500 px-6 py-2 rounded-lg text-black font-semibold transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
+                >
+                  <span>Editar Perfil</span>
+                </Link>
               </div>
             </div>
           </section>
