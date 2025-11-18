@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { GetUserByPerfil } from "@/app/lib/api/perfil";
 import { obtenerLocalidadesByID } from "../Perfil/action";
@@ -48,20 +48,32 @@ export default function Perfil() {
   const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
   const [ultimaConexion, setUltimaConexion] = useState<string>("Activo");
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
+  const menuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   const router = useRouter();
 
-  // Cerrar menú al hacer click fuera
+  // Cerrar menú al hacer click fuera - CORREGIDO
   useEffect(() => {
-    const handleClickOutside = () => {
-      setMenuAbierto(null);
+    const handleClickOutside = (event: MouseEvent) => {
+      const clickedOutside = Object.values(menuRefs.current).every(
+        (ref) => ref && !ref.contains(event.target as Node)
+      );
+      
+      if (clickedOutside && menuAbierto !== null) {
+        console.log("👆 Click fuera del menú, cerrando...");
+        setMenuAbierto(null);
+      }
     };
 
-    document.addEventListener('click', handleClickOutside);
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [menuAbierto]);
 
   // Carga perfil + localidad + rol desde la cookie/session
   useEffect(() => {
@@ -97,32 +109,32 @@ export default function Perfil() {
     load();
   }, []);
 
+  // Función para toggle del menú - CORREGIDA
   const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    setMenuAbierto(menuAbierto === publicacionId ? null : publicacionId);
+    console.log("🔄 Toggle menu para publicación:", publicacionId);
+    setMenuAbierto(prev => prev === publicacionId ? null : publicacionId);
   };
 
-  const handleEditarPublicacion = (publicacionId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // Función para editar publicación - CORREGIDA
+  const handleEditarPublicacion = (publicacionId: number) => {
+    console.log("✏️ Editando publicación:", publicacionId);
     setMenuAbierto(null);
-    // Aquí iría la lógica para editar la publicación
-    console.log("Editar publicación:", publicacionId);
-    router.push(`/Perfil/EditarPublicacion/${publicacionId}`);
+    setTimeout(() => {
+      router.push(`/Perfil/EditarPublicacion/${publicacionId}`);
+    }, 100);
   };
 
-  const handleEliminarPublicacion = async (publicacionId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setMenuAbierto(null);
+  // Función para eliminar publicación - CORREGIDA
+  const handleEliminarPublicacion = async (publicacionId: number) => {
+    console.log("🗑️ Eliminando publicación:", publicacionId);
     
     // Confirmación antes de eliminar
     if (window.confirm("¿Estás seguro de que quieres eliminar esta publicación?")) {
       try {
-        // Aquí iría la llamada a tu API para eliminar la publicación
-        console.log("Eliminar publicación:", publicacionId);
-        
         // Simular eliminación - en una app real harías una llamada a tu API
         setPublicaciones(publicaciones.filter(pub => pub.id !== publicacionId));
-        
         alert("Publicación eliminada correctamente");
       } catch (error) {
         console.error("Error al eliminar publicación:", error);
@@ -131,9 +143,18 @@ export default function Perfil() {
     }
   };
 
+  // Función para asignar la referencia del menú
+  const setMenuRef = (publicacionId: number, el: HTMLDivElement | null) => {
+    menuRefs.current[publicacionId] = el;
+  };
+
   if (!perfil) {
     return <p className="text-center mt-10 text-lg">Cargando perfil...</p>;
   }
+
+  // Debug logs
+  console.log("📊 Publicaciones cargadas:", publicaciones.length);
+  console.log("🎯 Menú abierto para publicación:", menuAbierto);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -275,7 +296,7 @@ export default function Perfil() {
             </div>
           </section>
 
-          {/* PUBLICACIONES CON MENÚ DESPLEGABLE */}
+          {/* PUBLICACIONES CON MENÚ DESPLEGABLE CORREGIDO */}
           <section className="w-full">
             <h2 className="text-xl font-bold mb-4 text-black">Publicaciones</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -300,8 +321,11 @@ export default function Perfil() {
                       <span className="font-semibold text-gray-800">{pub.nombrePerfilIdPerfil}</span>
                     </div>
                     
-                    {/* BOTÓN DE TRES PUNTITOS CON MENÚ DESPLEGABLE */}
-                    <div className="relative">
+                    {/* BOTÓN DE TRES PUNTITOS CON MENÚ DESPLEGABLE - CORREGIDO */}
+                    <div 
+                      className="relative"
+                      ref={(el) => setMenuRef(pub.id, el)}
+                    >
                       <button 
                         className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
                         onClick={(e) => toggleMenu(pub.id, e)}
@@ -311,11 +335,19 @@ export default function Perfil() {
                         </svg>
                       </button>
 
-                      {/* MENÚ DESPLEGABLE */}
+                      {/* MENÚ DESPLEGABLE - CORREGIDO */}
                       {menuAbierto === pub.id && (
-                        <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-32">
+                        <div 
+                          className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-32"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
-                            onClick={(e) => handleEditarPublicacion(pub.id, e)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("✏️ Click en Editar:", pub.id);
+                              handleEditarPublicacion(pub.id);
+                            }}
                             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -324,7 +356,12 @@ export default function Perfil() {
                             Editar
                           </button>
                           <button
-                            onClick={(e) => handleEliminarPublicacion(pub.id, e)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log("🗑️ Click en Eliminar:", pub.id);
+                              handleEliminarPublicacion(pub.id);
+                            }}
                             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
