@@ -1,3 +1,4 @@
+// app/Comunidad/actions.js
 'use server';
 
 import { getPublicacionTipo, getPublicacion, crearPublicacion } from "@/app/lib/api/publicacion";
@@ -13,15 +14,60 @@ export async function obtenerPublicaciones() {
   return await getPublicacion();
 }
 
-
 export async function obtenerPerfilNombre(params) {
   return await getPerfilNombre(params);
 }
-// Obtener perfil por ID
-export async function getPerfilById(id) {
-  return await getPerfilId(id);
-};
 
+// Obtener perfil por ID
+export async function obtenerPerfilPorId(id) {
+  return await getPerfilId(id);
+}
+
+// Obtener perfil por nombre usando el endpoint específico
+export async function obtenerPerfilPorNombre(nombre) {
+  try {
+    // Usar el endpoint específico para obtener perfil por nombre
+    const response = await fetch(`https://localhost:7168/api/Publicacion/api/v1/publicacion/perfil/${encodeURIComponent(nombre)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const perfil = await response.json();
+    return perfil;
+  } catch (error) {
+    console.error('Error al obtener perfil por nombre:', error);
+    return null;
+  }
+}
+
+// NUEVA FUNCIÓN: Obtener usuario actualmente logueado
+export async function obtenerUsuarioActual() {
+  try {
+    const response = await fetch('https://localhost:7168/api/user/me', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const usuario = await response.json();
+    return usuario;
+  } catch (error) {
+    console.error('Error al obtener usuario actual:', error);
+    return null;
+  }
+}
 
 // Obtener todas las provincias
 export async function fetchProvincias () {
@@ -42,7 +88,6 @@ export async function fetchProvinciaById(id){
 export async function fetchLocalidadById(id){
   return await GetLocalidadesByID(id);
 };
-
 
 export async function addPublicacion (data) {
   return await crearPublicacion(data);
