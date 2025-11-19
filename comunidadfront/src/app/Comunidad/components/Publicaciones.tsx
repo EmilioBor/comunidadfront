@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from "react";
-import { obtenerPublicaciones } from "../actions";
+import { obtenerPublicaciones, obtenerPerfilNombre } from "../actions";
 import CrearPublicacion from "./CrearPublicacion";
 import Link from "next/link";
 
@@ -16,6 +16,7 @@ interface Publicacion {
   nombrePerfilIdPerfil: string;
   nombrePublicacionTipoIdPublicacionTipo: string;
   nombreDonacionIdDonacion: string;
+  perfil?: any; // aquí guardaremos el perfil con imagen
 }
 
 export default function Perfil() {
@@ -28,8 +29,19 @@ export default function Perfil() {
   const loadPublicaciones = async () => {
     try {
       setLoading(true);
+
       const pubs = await obtenerPublicaciones();
-      setPublicaciones(pubs);
+
+      // Agregar perfil con imagen a cada publicación
+      const publicacionesConPerfil = await Promise.all(
+        pubs.map(async (pub: Publicacion) => {
+          const perfilData = await obtenerPerfilNombre(pub.nombrePerfilIdPerfil);
+          return { ...pub, perfil: perfilData };
+        })
+      );
+
+      setPublicaciones(publicacionesConPerfil);
+
     } catch (error) {
       console.error("Error cargando publicaciones:", error);
     } finally {
@@ -41,12 +53,8 @@ export default function Perfil() {
     loadPublicaciones();
   }, []);
 
-  const handleNuevaPublicacion = (pub: Publicacion) => {
-    setPublicaciones(prev => [pub, ...prev]);
-  };
-
   const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevenir que el evento llegue al document
+    e.stopPropagation();
     setMenuAbierto(menuAbierto === publicacionId ? null : publicacionId);
   };
 
@@ -54,7 +62,7 @@ export default function Perfil() {
     setMenuAbierto(null);
   };
 
-  // Cerrar menú al hacer click fuera de él - CORREGIDO
+  // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -63,9 +71,7 @@ export default function Perfil() {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   if (loading) {
@@ -74,7 +80,7 @@ export default function Perfil() {
         <h1 className="font-semibold text-black text-xl text-center mb-4">Publicaciones</h1>
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando publicaciones...</p>
+          <p className="font-medium text-black">Cargando...</p>
         </div>
       </div>
     );
@@ -96,32 +102,34 @@ export default function Perfil() {
         .filter(pub => !selectedTipo || pub.nombrePublicacionTipoIdPublicacionTipo === selectedTipo)
         .map(pub => (
           <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
+            
+            {/* Perfil */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-xs text-gray-600">?</span>
-                </div>
+
+                <img
+                  src={`data:image/jpeg;base64,${pub.perfil?.imagen}`}
+                  alt="Foto perfil"
+                  className="w-8 h-8 rounded-full object-cover bg-gray-200"
+                />
+
                 <p className="font-medium text-black cursor-pointer">
-                  {pub.nombrePerfilIdPerfil}
+                  {pub.perfil?.razonSocial}
                 </p>
               </div>
-              
-              {/* Menú de tres puntos - CORREGIDO */}
+
               <div className="relative" ref={menuRef}>
-                <button 
+                <button
                   onClick={(e) => toggleMenu(pub.id, e)}
                   className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-all duration-200 text-xl leading-none flex items-center justify-center w-8 h-8"
                   title="Opciones"
                 >
                   ⋮
                 </button>
-                
-                {/* Menú desplegable */}
+
                 {menuAbierto === pub.id && (
-                  <div 
-                    className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[150px] animate-in fade-in-0 zoom-in-95 duration-200"
-                  >
-                    <Link 
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[150px]">
+                    <Link
                       href={`/Reporte?publicacionId=${pub.id}`}
                       className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded text-sm text-black transition-colors duration-150"
                       onClick={cerrarMenu}
@@ -133,22 +141,25 @@ export default function Perfil() {
               </div>
             </div>
 
+            {/* Contenido */}
             <h3 className="font-bold text-xl mb-2 text-black">{pub.titulo}</h3>
             <p className="text-sm text-black mb-3">{pub.descripcion}</p>
             <p className="text-xs text-gray-500 mb-3">Fecha: {new Date(pub.fechaCreacion).toLocaleDateString()}</p>
             <p className="text-xs text-gray-500 mb-3">Localidad: {pub.nombreLocalidadIdLocalidad}</p>
-            <img 
-              src={`data:image/jpeg;base64,${pub.imagen}`} 
-              alt="Imagen publicación" 
-              className="rounded-xl w-full object-cover mb-3 max-h-64" 
+
+            <img
+              src={`data:image/jpeg;base64,${pub.imagen}`}
+              alt="Imagen publicación"
+              className="rounded-xl w-full object-cover mb-3 max-h-64"
             />
 
             <div className="flex justify-end gap-3">
               <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">Donar</button>
               <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">Chat</button>
             </div>
+
           </div>
-      ))}
+        ))}
     </div>
   );
 }
