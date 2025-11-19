@@ -1,4 +1,4 @@
-// app/Donacion/Crear/page.tsx - VERSIÓN SIMPLIFICADA SIN IMÁGENES
+// app/Donacion/Crear/page.tsx - VERSIÓN CORREGIDA
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -28,7 +28,6 @@ export default function CrearDonacion() {
   const [descripcion, setDescripcion] = useState("");
   const [tipoDonacionId, setTipoDonacionId] = useState("");
   const [tiposDonacion, setTiposDonacion] = useState<DonacionTipo[]>([]);
-  const [mostrarModal, setMostrarModal] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
@@ -234,19 +233,24 @@ export default function CrearDonacion() {
       publicacionIdPublicacion: publicacionId ? parseInt(publicacionId) : null,
     };
 
+    console.log("Enviando donación:", donacion);
+
     try {
       const resultado = await crearDonacion(donacion);
 
-      if (resultado.success) {
-        setMostrarModal(true);
+      if (resultado.success && resultado.data?.id) {
+        console.log("✅ Donación creada exitosamente, ID:", resultado.data.id);
+        // REDIRIGIR A DETALLE CON EL ID DE LA DONACIÓN
+        router.push(`/Donacion/Detalle?donacionId=${resultado.data.id}`);
+      } else if (resultado.success && !resultado.data?.id) {
+        console.error("⚠️ Donación creada pero no se obtuvo el ID");
+        setError("Donación creada, pero hubo un problema al obtener el ID. Contacta soporte.");
       } else {
-        if (resultado.error?.includes('500') || resultado.error?.includes('DateTime')) {
-          setError("Error temporal del servidor. Por favor, intenta nuevamente en unos momentos.");
-        } else {
-          setError(resultado.message || "Error al crear la donación");
-        }
+        console.error("❌ Error al crear donación:", resultado.message);
+        setError(resultado.message || "Error al crear la donación");
       }
     } catch (error) {
+      console.error("💥 Error inesperado:", error);
       setError("Error inesperado al enviar la donación");
     } finally {
       setEnviando(false);
@@ -361,7 +365,7 @@ export default function CrearDonacion() {
           
           {/* Descripción */}
           <div>
-            <label className="block text-sm font-semibold mb-1">Descripción *</label>
+            <label className="block text-sm font-semibold mb-1">Descripción</label>
             <textarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
@@ -373,7 +377,7 @@ export default function CrearDonacion() {
 
           {/* Tipo de Donación */}
           <div>
-            <label className="block text-sm font-semibold mb-1">Tipo de Donación *</label>
+            <label className="block text-sm font-semibold mb-1">Tipo de Donación</label>
             <select
               value={tipoDonacionId}
               onChange={(e) => setTipoDonacionId(e.target.value)}
@@ -412,27 +416,6 @@ export default function CrearDonacion() {
             </button>
           </div>
         </form>
-
-        {/* Modal de éxito */}
-        {mostrarModal && perfilDestino && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-5 rounded-xl shadow-lg w-full max-w-xs text-center">
-              <h3 className="text-lg font-semibold text-green-700 mb-2">¡Éxito!</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Tu donación fue enviada a {perfilDestino.razonSocial}.
-              </p>
-              <button
-                onClick={() => {
-                  setMostrarModal(false);
-                  router.push("/Inicio");
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                Aceptar
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

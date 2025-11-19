@@ -20,9 +20,25 @@ export async function crearDonacion(data) {
     console.log("Enviando datos de donación al backend:", donacionData);
     
     const resultado = await postDonacion(donacionData);
+    
+    // EXTRAER EL ID DE LA DONACIÓN CREADA
+    const donacionId = resultado.id || resultado.donacionId || resultado.data?.id;
+    
+    if (!donacionId) {
+      console.error("No se pudo obtener el ID de la donación creada:", resultado);
+      return { 
+        success: false, 
+        message: "Donación creada pero no se pudo obtener el ID para redirección"
+      };
+    }
+    
+    console.log("✅ Donación creada con ID:", donacionId);
+    
     return { 
       success: true, 
-      data: resultado,
+      data: {
+        id: donacionId // ← ENVIAMOS SOLO EL ID PARA LA REDIRECCIÓN
+      },
       message: "Donación creada exitosamente"
     };
   } catch (error) {
@@ -35,7 +51,7 @@ export async function crearDonacion(data) {
   }
 }
 
-// Acción para obtener tipos de donación
+// Acción para obtener tipos de donación (sin cambios)
 export async function obtenerTiposDonacion() {
   try {
     const tipos = await getDonacionTipos();
