@@ -1,3 +1,4 @@
+// app/Donacion/Crear/actions.js
 'use server'
 
 import { postDonacion } from "@/app/lib/api/donacionApi";
@@ -6,7 +7,19 @@ import { getDonacionTipos } from "@/app/lib/api/donacionTipoApi";
 // Acción para crear una donación
 export async function crearDonacion(data) {
   try {
-    const resultado = await postDonacion(data);
+    // Asegúrate de que los nombres de las propiedades coincidan con el DTO del backend
+    const donacionData = {
+      descripcion: data.descripcion,
+      fechaHora: data.fechaHora,
+      donacionTipoIdDonacionTipo: data.donacionTipoIdDonacionTipo,
+      perfilIdPerfil: data.perfilIdPerfil,
+      perfilDonanteIdPerfilDonante: data.perfilDonanteIdPerfilDonante,
+      publicacionIdPublicacion: data.publicacionIdPublicacion
+    };
+    
+    console.log("Enviando datos de donación al backend:", donacionData);
+    
+    const resultado = await postDonacion(donacionData);
     return { 
       success: true, 
       data: resultado,
