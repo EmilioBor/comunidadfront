@@ -121,7 +121,7 @@ export default function Perfil() {
         .map(pub => (
           <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
             
-            {/* Perfil */}
+            {/* Perfil - MODIFICADO: Nombre clickeable */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
                 <img
@@ -129,9 +129,19 @@ export default function Perfil() {
                   alt="Foto perfil"
                   className="w-8 h-8 rounded-full object-cover bg-gray-200"
                 />
-                <p className="font-medium text-black cursor-pointer">
-                  {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
-                </p>
+                {/* NOMBRE DEL PERFIL CLICKEABLE - NUEVO */}
+                {pub.perfil?.id ? (
+                  <Link 
+                    href={`/Perfil/VerPerfil?id=${pub.perfil.id}`}
+                    className="font-medium text-black hover:text-blue-600 transition-colors cursor-pointer"
+                  >
+                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-black">
+                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
+                  </span>
+                )}
               </div>
 
               <div className="relative" ref={menuRef}>
