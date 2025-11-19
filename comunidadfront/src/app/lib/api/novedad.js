@@ -49,3 +49,4 @@ export async function getNovedades() {
         console.error(err);
       }
     }
+    
