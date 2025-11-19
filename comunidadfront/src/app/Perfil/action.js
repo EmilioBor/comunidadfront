@@ -1,5 +1,6 @@
 "use server";
 
+import { getPerfilId } from "@/app/lib/api/perfil";
 import { GetLocalidadesByID } from "@/app/lib/api/localidad";
 import { getPublicacionPerfil } from "@/app/lib/api/publicacion";
 export async function obtenerLocalidadesByID(id) {
@@ -26,3 +27,6 @@ export async function obtenerPublicacion(data) {
     return await getPublicacionPerfil(data);
 } 
 
+export async function obtenerPerfilId(data) {
+  return await getPerfilId(data);
+} 

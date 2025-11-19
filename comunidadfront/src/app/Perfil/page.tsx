@@ -7,7 +7,7 @@ import { obtenerLocalidadesByID } from "../Perfil/action";
 import { useRouter } from "next/navigation";
 import Navbar from "../Inicio/components/Navbar";
 import Link from "next/link";
-import { obtenerPublicacion } from "./action";
+import { obtenerPublicacion, obtenerPerfilId } from "./action";
 
 interface PerfilType {
   id: number;
@@ -82,8 +82,10 @@ export default function Perfil() {
         const me = await fetch("/api/user/me").then((r) => r.json());
         console.log("me:", me);
         setRol(me.rol);
+          //ACAA HAY QUE ACOMODARLO
+         const perfilData = await GetUserByPerfil(me.id);
+        //  const perfilData = await obtenerPerfilId(12);
 
-        const perfilData = await GetUserByPerfil(me.id);
         console.log("perfilData:", perfilData);
         if (!perfilData) {
           router.push("/Perfil/Crear");
