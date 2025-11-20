@@ -229,10 +229,10 @@ export default function VerPerfil() {
 
           <div className="mt-10 flex flex-col w-full gap-4">
             <Link
-              href={`/Perfil/Donaciones?perfilId=${perfil.id}`}
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
+                href={`/Perfil/VerDonaciones?perfilId=${perfil.id}`}
+                className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
             >
-              Donaciones
+                Donaciones
             </Link>
             <Link
               href="/Perfil/Chat"
