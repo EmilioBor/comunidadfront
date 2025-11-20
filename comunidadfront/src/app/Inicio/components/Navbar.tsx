@@ -1,56 +1,16 @@
-// "use client";
-// import Link from "next/link";
-
-// export default function Navbar() {
-//   return (
-//     <nav className="bg-gray-800 text-white px-6 py-3 flex items-center justify-between ">
-//       {/* Logo + Nombre */}
-//       <div className="flex items-center space-x-2">
-//         <img src="/logo.png" alt="Logo" className="w-8 h-8" />
-//         <Link href="/Inicio" className="hover:underline">Comunidad Solidaria</Link>
-//       </div>
-
-//       {/* Links */}
-//       <div className="flex items-center space-x-6">
-//         <Link href="/Inicio#quienes" className="hover:underline">Quienes somos</Link>
-//         <Link href="#comunidad" className="hover:underline">Comunidad</Link>
-//         <Link href="/Novedades" className="hover:underline">Novedades</Link>
-//         <Link href="/Inicio/Empresas" className="hover:underline">Contactanos</Link>
-//         <Link href="/login" className="hover:underline">Inicio Sesión</Link>
-//         <Link
-//               href="/Donacion/ComunidadSolidaria"
-//               className="bg-[#C5E9BE] text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-green-300"
-//             >
-//               Donar aquí
-//             </Link>
-//       </div>
-//     </nav>
-//   );
-// }
+// app/Inicio/Navbar.jsx - VERSIÓN ACTUALIZADA
 "use client";
-
-interface Perfil {
-  razonSocial: string;
-  descripcion: string;
-  imagen: string | null;
-}
-
-interface LoggedUser {
-  id: number;
-  email: string;
-  token: string;
-  perfil: Perfil;
-}
 
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { getLoggedUser } from "@/app/lib/api/getLoggedUser";
 import { logoutAction } from "@/app/Inicio/Navbar/logoutAction";
+import Notificaciones from "@/app/Inicio/components/Notificaciones";
 
 export default function Navbar() {
-  const [user, setUser] = useState<LoggedUser | null>(null);
+  const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [perfilId, setPerfilId] = useState(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -58,6 +18,11 @@ export default function Navbar() {
         const res = await fetch("/api/user/me");
         const data = await res.json();
         setUser(data);
+        
+        // Obtener el perfilId del usuario logueado
+        if (data?.perfil?.id) {
+          setPerfilId(data.perfil.id);
+        }
       } catch (err) {
         console.error("Error cargando usuario:", err);
       }
@@ -81,11 +46,15 @@ export default function Navbar() {
         <Link href="/Novedades" className="hover:underline">Novedades</Link>
         <Link href="/Inicio/Empresas" className="hover:underline">Contactanos</Link>
 
+        {/* NOTIFICACIONES - SOLO SI ESTÁ LOGUEADO */}
+        {user && perfilId && (
+          <Notificaciones perfilId={perfilId} />
+        )}
+
         {/* SI ESTÁ LOGUEADO */}
         {user ? (
           <div className="relative">
-
-            {/* FOTO PERFIL - SOLO AQUÍ SE ACTIVA EL HOVER */}
+            {/* FOTO PERFIL */}
             <div
               className="w-10 h-10 rounded-full overflow-hidden border-2 border-white bg-gray-200 cursor-pointer"
               onMouseEnter={() => setShowProfileMenu(true)}
@@ -157,7 +126,6 @@ export default function Navbar() {
                 </form>
               </div>
             </div>
-
           </div>
         ) : (
           <Link href="/login" className="hover:underline">Inicio Sesión</Link>

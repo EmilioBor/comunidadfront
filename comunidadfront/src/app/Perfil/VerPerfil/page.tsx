@@ -216,6 +216,24 @@ export default function VerPerfil() {
     load();
   }, [perfilId]);
 
+  const getDonacionUrl = (publicacion: Publicacion) => {
+  const perfilDestino = perfil; // El perfil que estamos viendo en VerPerfil
+  
+  if (!perfilDestino?.id) {
+    console.error('No se pudo obtener el perfil de destino');
+    return '#';
+  }
+
+  const params = new URLSearchParams({
+    publicacionId: publicacion.id.toString(),
+    perfilDestinoId: perfilDestino.id.toString(), // ID del perfil que estamos viendo
+    razonSocialDestino: perfilDestino.razonSocial
+  });
+  
+  console.log(`URL de donación para publicación ${publicacion.id}:`, `/Donacion/Crear?${params.toString()}`);
+  return `/Donacion/Crear?${params.toString()}`;
+};
+
   // Función para formatear la localidad y provincia
   const formatearLocalidad = () => {
     if (!localidad) {
@@ -511,16 +529,16 @@ export default function VerPerfil() {
                       {/* BOTONES DE ACCIÓN - SOLO DONAR Y CHAT */}
                       <div className="flex gap-2 mt-3">
                         <Link
-                          href={`/Donacion/${pub.id}`}
-                          className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-green-500 transition"
+                            href={getDonacionUrl(pub)}
+                            className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-green-500 transition"
                         >
-                          Donar
+                            Donar
                         </Link>
                         <Link
-                          href={`/Perfil/Chat?perfil=${pub.nombrePerfilIdPerfil}`}
-                          className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-blue-500 transition"
+                            href={`/Perfil/Chat?perfil=${pub.nombrePerfilIdPerfil}`}
+                            className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-blue-500 transition"
                         >
-                          Chat
+                            Chat
                         </Link>
                       </div>
                     </div>
