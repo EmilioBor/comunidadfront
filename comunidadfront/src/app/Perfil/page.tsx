@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "../Inicio/components/Navbar";
 import Link from "next/link";
 import { obtenerPublicacion, obtenerPerfilId } from "./action";
+import { useObtenerUltimaConexion, useRegistroConexion } from "@/hooks/useUltimaConexion";
 
 interface PerfilType {
   id: number;
@@ -46,13 +47,30 @@ export default function Perfil() {
   const [rol, setRol] = useState<string | null>(null);
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
-  const [ultimaConexion, setUltimaConexion] = useState<string>("Activo");
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
+  const [modalEliminar, setModalEliminar] = useState<{ mostrar: boolean; publicacionId: number | null; titulo: string }>({
+    mostrar: false,
+    publicacionId: null,
+    titulo: ""
+  });
+  const [eliminando, setEliminando] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  
   const menuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   const router = useRouter();
 
-  // Cerrar menú al hacer click fuera - CORREGIDO
+  // Asegurar valores estables para los hooks
+  const userIdEstable = userId || 0;
+  const perfilIdEstable = perfil?.id || 0;
+
+  // Registrar MI conexión automáticamente CON MAPEO
+  useRegistroConexion(userIdEstable, perfilIdEstable);
+
+  // Usar el hook para obtener última conexión REAL (de mi propio usuario)
+  const { ultimaConexion, color } = useObtenerUltimaConexion(userIdEstable, perfilIdEstable);
+
+  // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const clickedOutside = Object.values(menuRefs.current).every(
@@ -60,7 +78,6 @@ export default function Perfil() {
       );
       
       if (clickedOutside && menuAbierto !== null) {
-        console.log("👆 Click fuera del menú, cerrando...");
         setMenuAbierto(null);
       }
     };
@@ -80,13 +97,15 @@ export default function Perfil() {
     async function load() {
       try {
         const me = await fetch("/api/user/me").then((r) => r.json());
-        console.log("me:", me);
+        console.log("📊 Datos del usuario logueado:", me);
         setRol(me.rol);
-          //ACAA HAY QUE ACOMODARLO
-         const perfilData = await GetUserByPerfil(me.id);
-        //  const perfilData = await obtenerPerfilId(12);
-
-        console.log("perfilData:", perfilData);
+        
+        // Guardar el ID del usuario logueado - ESTE ES EL ID CORRECTO
+        setUserId(me.id);
+        console.log("🔑 ID del usuario logueado:", me.id);
+        
+        const perfilData = await GetUserByPerfil(me.id);
+        console.log("📄 Datos del perfil:", perfilData);
         if (!perfilData) {
           router.push("/Perfil/Crear");
           return;
@@ -94,15 +113,12 @@ export default function Perfil() {
         setPerfil(perfilData);
 
         const localidadData = await obtenerLocalidadesByID(perfilData.localidadIdLocalidad);
-        console.log("localidadData:", localidadData);
+        console.log("📍 Localidad:", localidadData);
         setLocalidad(localidadData);
 
         const pubs = await obtenerPublicacion(perfilData.razonSocial);
-        console.log("pubs:", pubs);
+        console.log("📝 Publicaciones:", pubs);
         setPublicaciones(Array.isArray(pubs) ? pubs : [pubs]);
-
-        // Simular última conexión
-        setUltimaConexion("Activo");
         
       } catch (error) {
         console.error("Error cargando datos del perfil:", error);
@@ -111,37 +127,64 @@ export default function Perfil() {
     load();
   }, []);
 
-  // Función para toggle del menú - CORREGIDA
+  // Función para toggle del menú
   const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("🔄 Toggle menu para publicación:", publicacionId);
     setMenuAbierto(prev => prev === publicacionId ? null : publicacionId);
   };
 
-  // Función para editar publicación - CORREGIDA
+  // Función para editar publicación
   const handleEditarPublicacion = (publicacionId: number) => {
-    console.log("✏️ Editando publicación:", publicacionId);
     setMenuAbierto(null);
     setTimeout(() => {
       router.push(`/Perfil/EditarPublicacion/${publicacionId}`);
     }, 100);
   };
 
-  // Función para eliminar publicación - CORREGIDA
-  const handleEliminarPublicacion = async (publicacionId: number) => {
-    console.log("🗑️ Eliminando publicación:", publicacionId);
+  // Función para abrir modal de confirmación de eliminación
+  const handleAbrirModalEliminar = (publicacionId: number, titulo: string) => {
+    setMenuAbierto(null);
+    setModalEliminar({
+      mostrar: true,
+      publicacionId,
+      titulo
+    });
+  };
+
+  // Función para cerrar modal de eliminación
+  const handleCerrarModalEliminar = () => {
+    setModalEliminar({
+      mostrar: false,
+      publicacionId: null,
+      titulo: ""
+    });
+    setEliminando(false);
+  };
+
+  // Función para eliminar publicación
+  const handleEliminarPublicacion = async () => {
+    if (!modalEliminar.publicacionId) return;
+
+    setEliminando(true);
     
-    // Confirmación antes de eliminar
-    if (window.confirm("¿Estás seguro de que quieres eliminar esta publicación?")) {
-      try {
-        // Simular eliminación - en una app real harías una llamada a tu API
-        setPublicaciones(publicaciones.filter(pub => pub.id !== publicacionId));
-        alert("Publicación eliminada correctamente");
-      } catch (error) {
-        console.error("Error al eliminar publicación:", error);
-        alert("Error al eliminar la publicación");
+    try {
+      const response = await fetch(`https://localhost:7168/api/Publicacion/api/v1/delete/publicacion/${modalEliminar.publicacionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Eliminar la publicación del estado local
+        setPublicaciones(publicaciones.filter(pub => pub.id !== modalEliminar.publicacionId));
+        handleCerrarModalEliminar();
+      } else {
+        throw new Error('Error al eliminar la publicación');
       }
+    } catch (error) {
+      console.error("Error al eliminar publicación:", error);
+      alert("Error al eliminar la publicación");
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -154,13 +197,37 @@ export default function Perfil() {
     return <p className="text-center mt-10 text-lg">Cargando perfil...</p>;
   }
 
-  // Debug logs
-  console.log("📊 Publicaciones cargadas:", publicaciones.length);
-  console.log("🎯 Menú abierto para publicación:", menuAbierto);
-
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      
+      {/* MODAL DE IMAGEN DE PERFIL - CENTRADO EN TODA LA PANTALLA SIN FONDO OSCURO */}
+      {mostrarModalImagen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full mx-4 p-6">
+            <button 
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
+              onClick={() => setMostrarModalImagen(false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Foto de perfil</h3>
+              <div className="flex justify-center">
+                <img
+                  src={`data:image/jpeg;base64,${perfil.imagen}`}
+                  alt="Foto de perfil ampliada"
+                  className="w-80 h-80 object-cover rounded-lg shadow-lg"
+                />
+              </div>
+              <p className="text-gray-700 mt-6 text-lg font-semibold">{perfil.razonSocial}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex w-full">
         {/* COLUMNA IZQUIERDA */}
         <aside className="w-1/4 h-screen p-6 flex flex-col items-center bg-gray-100">
@@ -206,8 +273,65 @@ export default function Perfil() {
         </aside>
 
         {/* COLUMNA CENTRAL */}
-        <main className="w-3/4 p-8 flex flex-col gap-8">
-          {/* INFORMACIÓN DEL PERFIL - MEJORADA */}
+        <main className="w-3/4 p-8 flex flex-col gap-8 relative">
+          {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR PUBLICACIÓN - SIN FONDO OSCURO */}
+          {modalEliminar.mostrar && (
+            <div className="absolute inset-0 flex items-center justify-center z-40">
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full mx-4 p-6 transform transition-all">
+                <div className="text-center">
+                  {/* Icono de advertencia */}
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    ¿Deseas eliminar la publicación?
+                  </h3>
+                  
+                  <p className="text-gray-600 mb-6">
+                    Estás por eliminar la publicación: <strong>"{modalEliminar.titulo}"</strong>. Esta acción no se puede deshacer.
+                  </p>
+
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={handleCerrarModalEliminar}
+                      disabled={eliminando}
+                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    
+                    <button
+                      onClick={handleEliminarPublicacion}
+                      disabled={eliminando}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
+                    >
+                      {eliminando ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Eliminando...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Sí, eliminar
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* INFORMACIÓN DEL PERFIL */}
           <section className="w-full">
             <div className="bg-gradient-to-r from-green-50 to-blue-50 p-8 rounded-2xl shadow-lg border border-green-200">
               <div className="bg-white rounded-xl shadow-md p-6">
@@ -229,7 +353,7 @@ export default function Perfil() {
                   </div>
                 </div>
 
-                {/* INFORMACIÓN EN GRID MEJORADA - ORGANIZACIÓN SOLICITADA */}
+                {/* INFORMACIÓN EN GRID MEJORADA */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   {/* COLUMNA IZQUIERDA */}
                   <div className="space-y-4">
@@ -268,16 +392,18 @@ export default function Perfil() {
                       <p className="text-lg font-semibold text-gray-800">{perfil.cuitCuil}</p>
                     </div>
 
-                    {/* ÚLTIMA CONEXIÓN */}
+                    {/* ÚLTIMA CONEXIÓN - CON DATOS REALES DEL LOCALSTORAGE */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Última conexión</p>
-                      <p className={`text-lg font-semibold ${
-                        ultimaConexion === "Activo" 
-                          ? "text-green-600" 
-                          : "text-gray-600"
-                      }`}>
+                      <p className={`text-lg font-semibold ${color}`}>
                         {ultimaConexion}
                       </p>
+                      {ultimaConexion.includes("Activo ahora") && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs text-green-600">En línea</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -298,7 +424,7 @@ export default function Perfil() {
             </div>
           </section>
 
-          {/* PUBLICACIONES CON MENÚ DESPLEGABLE CORREGIDO */}
+          {/* PUBLICACIONES CON MENÚ DESPLEGABLE */}
           <section className="w-full">
             <h2 className="text-xl font-bold mb-4 text-black">Publicaciones</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -323,7 +449,7 @@ export default function Perfil() {
                       <span className="font-semibold text-gray-800">{pub.nombrePerfilIdPerfil}</span>
                     </div>
                     
-                    {/* BOTÓN DE TRES PUNTITOS CON MENÚ DESPLEGABLE - CORREGIDO */}
+                    {/* BOTÓN DE TRES PUNTITOS CON MENÚ DESPLEGABLE */}
                     <div 
                       className="relative"
                       ref={(el) => setMenuRef(pub.id, el)}
@@ -337,7 +463,7 @@ export default function Perfil() {
                         </svg>
                       </button>
 
-                      {/* MENÚ DESPLEGABLE - CORREGIDO */}
+                      {/* MENÚ DESPLEGABLE */}
                       {menuAbierto === pub.id && (
                         <div 
                           className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-32"
@@ -347,7 +473,6 @@ export default function Perfil() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log("✏️ Click en Editar:", pub.id);
                               handleEditarPublicacion(pub.id);
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors"
@@ -361,8 +486,7 @@ export default function Perfil() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              console.log("🗑️ Click en Eliminar:", pub.id);
-                              handleEliminarPublicacion(pub.id);
+                              handleAbrirModalEliminar(pub.id, pub.titulo);
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                           >
@@ -418,35 +542,6 @@ export default function Perfil() {
           </section>
         </main>
       </div>
-
-      {/* MODAL PARA VER IMAGEN GRANDE - VERSIÓN MÁS SIMPLE */}
-      {mostrarModalImagen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-8"
-          onClick={() => setMostrarModalImagen(false)}
-        >
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl max-h-[90vh] overflow-hidden">
-            <button 
-              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-1 shadow-md"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMostrarModalImagen(false);
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="p-4">
-              <img
-                src={`data:image/jpeg;base64,${perfil.imagen}`}
-                alt="Foto de perfil ampliada"
-                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

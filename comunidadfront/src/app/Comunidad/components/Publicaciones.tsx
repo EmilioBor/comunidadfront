@@ -16,7 +16,7 @@ interface Publicacion {
   nombrePerfilIdPerfil: string;
   nombrePublicacionTipoIdPublicacionTipo: string;
   nombreDonacionIdDonacion: string;
-  perfil?: any; // aquí guardaremos el perfil con imagen
+  perfil?: any;
 }
 
 export default function Perfil() {
@@ -74,6 +74,24 @@ export default function Perfil() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Función para construir la URL de donación - CORREGIDA
+  const getDonacionUrl = (publicacion: Publicacion) => {
+    if (!publicacion.perfil?.id) {
+      console.error('No se pudo obtener el perfil de destino para la publicación:', publicacion.id);
+      console.log('Perfil data:', publicacion.perfil);
+      return '#';
+    }
+
+    const params = new URLSearchParams({
+      publicacionId: publicacion.id.toString(),
+      perfilDestinoId: publicacion.perfil.id.toString(), // ID REAL del perfil
+      razonSocialDestino: publicacion.perfil.razonSocial || publicacion.nombrePerfilIdPerfil
+    });
+    
+    console.log(`URL de donación para publicación ${publicacion.id}:`, `/Donacion/Crear?${params.toString()}`);
+    return `/Donacion/Crear?${params.toString()}`;
+  };
+
   if (loading) {
     return (
       <div className="bg-[#D9D9D9] p-4 rounded-2xl flex flex-col gap-4">
@@ -103,19 +121,27 @@ export default function Perfil() {
         .map(pub => (
           <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
             
-            {/* Perfil */}
+            {/* Perfil - MODIFICADO: Nombre clickeable */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-3">
-
                 <img
-                  src={`data:image/jpeg;base64,${pub.perfil?.imagen}`}
+                  src={pub.perfil?.imagen ? `data:image/jpeg;base64,${pub.perfil.imagen}` : "/default-profile.png"}
                   alt="Foto perfil"
                   className="w-8 h-8 rounded-full object-cover bg-gray-200"
                 />
-
-                <p className="font-medium text-black cursor-pointer">
-                  {pub.perfil?.razonSocial}
-                </p>
+                {/* NOMBRE DEL PERFIL CLICKEABLE - NUEVO */}
+                {pub.perfil?.id ? (
+                  <Link 
+                    href={`/Perfil/VerPerfil?id=${pub.perfil.id}`}
+                    className="font-medium text-black hover:text-blue-600 transition-colors cursor-pointer"
+                  >
+                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-black">
+                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
+                  </span>
+                )}
               </div>
 
               <div className="relative" ref={menuRef}>
@@ -154,7 +180,12 @@ export default function Perfil() {
             />
 
             <div className="flex justify-end gap-3">
-              <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">Donar</button>
+              <Link 
+                href={getDonacionUrl(pub)}
+                className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
+              >
+                Donar
+              </Link>
               <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">Chat</button>
             </div>
 
