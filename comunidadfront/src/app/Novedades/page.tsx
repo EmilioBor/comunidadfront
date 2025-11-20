@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Footer from "../Inicio/components/Footer";
 import Navbar from "../Inicio/components/Navbar";
-import { obtenerNovedades } from "./action";
+import { obtenerNovedades, obtenerPerfilNombre } from "./action";
 import Link from "next/link";
 
 interface Novedad {
@@ -12,20 +12,37 @@ interface Novedad {
   descripcion: string;
   fecha: string;
   imagen: string;
+  nombrePerfilIdPerfil: string;
 }
 
 export default function Novedades() {
   const [novedades, setNovedades] = useState<Novedad[]>([]);
+  const [perfiles, setPerfiles] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const cargarNovedades = async () => {
       try {
-        const res = await obtenerNovedades();
+        const res = (await obtenerNovedades()) as Novedad[]; // tipamos el resultado
+
+        if (!res) return;
         setNovedades(res);
+
+        const nombres: string[] = [
+          ...new Set(res.map((n: Novedad) => n.nombrePerfilIdPerfil)),
+        ];
+
+        const perfilesData: Record<string, any> = {};
+        for (const nombre of nombres) {
+          const perfil = await obtenerPerfilNombre(nombre);
+          perfilesData[nombre] = perfil;
+        }
+
+        setPerfiles(perfilesData);
       } catch (err) {
         console.error(err);
       }
     };
+
     cargarNovedades();
   }, []);
 
@@ -50,26 +67,53 @@ export default function Novedades() {
                 key={novedad.id}
                 className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col"
               >
-                <img
-                  src={`data:image/jpeg;base64,${novedad.imagen}`}
-                  alt={novedad.titulo}
-                  className="w-full h-[200px] object-cover"
-                />
+                {/* IMAGEN PRINCIPAL */}
+                <div className="relative">
+                  <img
+                    src={`data:image/jpeg;base64,${novedad.imagen}`}
+                    alt={novedad.titulo}
+                    className="w-full h-[200px] object-cover"
+                  />
+                </div>
                 <div className="p-4 flex flex-col flex-grow">
-                  <h3 className="text-lg font-semibold text-[#2c3e50] mb-2">
-                    {novedad.titulo}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    {new Date(novedad.fecha).toLocaleDateString("es-AR", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
+                  {/* FILA: TÍTULO + PERFIL */}
+                  <div className="flex justify-between items-start mb-3">
+                    {/* TITULO + FECHA */}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-[#2c3e50]">
+                        {novedad.titulo}
+                      </h3>
 
+                      <p className="text-sm text-gray-500">
+                        {new Date(novedad.fecha).toLocaleDateString("es-AR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+
+                    {/* PERFIL */}
+                    {perfiles[novedad.nombrePerfilIdPerfil] && (
+                      <div className="flex flex-col items-center ml-4">
+                        <img
+                          src={`data:image/jpeg;base64,${
+                            perfiles[novedad.nombrePerfilIdPerfil].imagen
+                          }`}
+                          alt="Perfil"
+                          className="w-12 h-12 rounded-full object-cover border"
+                        />
+                        <span className="text-sm font-medium text-gray-700 mt-1 text-center">
+                          {perfiles[novedad.nombrePerfilIdPerfil].razonSocial}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BOTÓN */}
                   <Link
                     href={`/Novedades/${novedad.id}`}
-                    className="mt-4 bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700 self-start"
+                    className="mt-auto bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700 self-start"
                   >
                     Leer más
                   </Link>
