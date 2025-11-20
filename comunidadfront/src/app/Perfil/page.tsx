@@ -186,6 +186,34 @@ export default function Perfil() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      
+      {/* MODAL DE IMAGEN DE PERFIL - CENTRADO EN TODA LA PANTALLA SIN FONDO OSCURO */}
+      {mostrarModalImagen && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full mx-4 p-6">
+            <button 
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
+              onClick={() => setMostrarModalImagen(false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Foto de perfil</h3>
+              <div className="flex justify-center">
+                <img
+                  src={`data:image/jpeg;base64,${perfil.imagen}`}
+                  alt="Foto de perfil ampliada"
+                  className="w-80 h-80 object-cover rounded-lg shadow-lg"
+                />
+              </div>
+              <p className="text-gray-700 mt-6 text-lg font-semibold">{perfil.razonSocial}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex w-full">
         {/* COLUMNA IZQUIERDA */}
         <aside className="w-1/4 h-screen p-6 flex flex-col items-center bg-gray-100">
@@ -234,7 +262,7 @@ export default function Perfil() {
         <main className="w-3/4 p-8 flex flex-col gap-8 relative">
           {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR PUBLICACIÓN - SIN FONDO OSCURO */}
           {modalEliminar.mostrar && (
-            <div className="absolute inset-0 flex items-center justify-center z-50">
+            <div className="absolute inset-0 flex items-center justify-center z-40">
               <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full mx-4 p-6 transform transition-all">
                 <div className="text-center">
                   {/* Icono de advertencia */}
@@ -498,35 +526,6 @@ export default function Perfil() {
           </section>
         </main>
       </div>
-
-      {/* MODAL PARA VER IMAGEN GRANDE */}
-      {mostrarModalImagen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-8"
-          onClick={() => setMostrarModalImagen(false)}
-        >
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl max-h-[90vh] overflow-hidden">
-            <button 
-              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-1 shadow-md"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMostrarModalImagen(false);
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="p-4">
-              <img
-                src={`data:image/jpeg;base64,${perfil.imagen}`}
-                alt="Foto de perfil ampliada"
-                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
