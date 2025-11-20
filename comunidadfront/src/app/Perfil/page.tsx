@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "../Inicio/components/Navbar";
 import Link from "next/link";
 import { obtenerPublicacion, obtenerPerfilId } from "./action";
+import { useObtenerUltimaConexion, useRegistroConexion } from "@/hooks/useUltimaConexion";
 
 interface PerfilType {
   id: number;
@@ -46,7 +47,6 @@ export default function Perfil() {
   const [rol, setRol] = useState<string | null>(null);
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
-  const [ultimaConexion, setUltimaConexion] = useState<string>("Activo");
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
   const [modalEliminar, setModalEliminar] = useState<{ mostrar: boolean; publicacionId: number | null; titulo: string }>({
     mostrar: false,
@@ -54,10 +54,21 @@ export default function Perfil() {
     titulo: ""
   });
   const [eliminando, setEliminando] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
   
   const menuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   const router = useRouter();
+
+  // Asegurar valores estables para los hooks
+  const userIdEstable = userId || 0;
+  const perfilIdEstable = perfil?.id || 0;
+
+  // Registrar MI conexión automáticamente CON MAPEO
+  useRegistroConexion(userIdEstable, perfilIdEstable);
+
+  // Usar el hook para obtener última conexión REAL (de mi propio usuario)
+  const { ultimaConexion, color } = useObtenerUltimaConexion(userIdEstable, perfilIdEstable);
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -86,10 +97,15 @@ export default function Perfil() {
     async function load() {
       try {
         const me = await fetch("/api/user/me").then((r) => r.json());
-        console.log("me:", me);
+        console.log("📊 Datos del usuario logueado:", me);
         setRol(me.rol);
+        
+        // Guardar el ID del usuario logueado - ESTE ES EL ID CORRECTO
+        setUserId(me.id);
+        console.log("🔑 ID del usuario logueado:", me.id);
+        
         const perfilData = await GetUserByPerfil(me.id);
-        console.log("perfilData:", perfilData);
+        console.log("📄 Datos del perfil:", perfilData);
         if (!perfilData) {
           router.push("/Perfil/Crear");
           return;
@@ -97,14 +113,12 @@ export default function Perfil() {
         setPerfil(perfilData);
 
         const localidadData = await obtenerLocalidadesByID(perfilData.localidadIdLocalidad);
-        console.log("localidadData:", localidadData);
+        console.log("📍 Localidad:", localidadData);
         setLocalidad(localidadData);
 
         const pubs = await obtenerPublicacion(perfilData.razonSocial);
-        console.log("pubs:", pubs);
+        console.log("📝 Publicaciones:", pubs);
         setPublicaciones(Array.isArray(pubs) ? pubs : [pubs]);
-
-        setUltimaConexion("Activo");
         
       } catch (error) {
         console.error("Error cargando datos del perfil:", error);
@@ -378,16 +392,18 @@ export default function Perfil() {
                       <p className="text-lg font-semibold text-gray-800">{perfil.cuitCuil}</p>
                     </div>
 
-                    {/* ÚLTIMA CONEXIÓN */}
+                    {/* ÚLTIMA CONEXIÓN - CON DATOS REALES DEL LOCALSTORAGE */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Última conexión</p>
-                      <p className={`text-lg font-semibold ${
-                        ultimaConexion === "Activo" 
-                          ? "text-green-600" 
-                          : "text-gray-600"
-                      }`}>
+                      <p className={`text-lg font-semibold ${color}`}>
                         {ultimaConexion}
                       </p>
+                      {ultimaConexion.includes("Activo ahora") && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-xs text-green-600">En línea</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

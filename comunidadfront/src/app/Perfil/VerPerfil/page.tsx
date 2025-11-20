@@ -1,4 +1,4 @@
-// app/Perfil/VerPerfil/page.tsx
+// src/app/Perfil/VerPerfil/page.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -7,6 +7,7 @@ import { obtenerPerfilId, obtenerPublicacion, obtenerLocalidadConProvincia } fro
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../Inicio/components/Navbar";
 import Link from "next/link";
+import { useObtenerUltimaConexion } from "@/hooks/useUltimaConexion";
 
 interface PerfilType {
   id: number;
@@ -15,10 +16,9 @@ interface PerfilType {
   descripcion: string;
   cbu: number;
   alias: string;
-  usuarioIdUsuario: number;
+  usuarioIdUsuario?: number;
   localidadIdLocalidad: number;
   imagen: string;
-  ultimaConexion?: string; // Agregar este campo
 }
 
 interface LocalidadType {
@@ -45,21 +45,53 @@ interface Publicacion {
   nombreDonacionIdDonacion: number;
 }
 
+// Función para generar un ID único basado en el perfil (FALLBACK)
+function generarUsuarioIdDesdePerfil(perfil: PerfilType): number {
+  const str = `${perfil.id}-${perfil.cuitCuil}-${perfil.razonSocial}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash) + 10000;
+}
+
+// Función helper para guardar mapeo
+function guardarMapeoPerfilUsuario(perfilId: number, usuarioId: number) {
+  try {
+    const mapeo = JSON.parse(localStorage.getItem('mapeoPerfilUsuario') || '{}');
+    mapeo[perfilId] = usuarioId;
+    localStorage.setItem('mapeoPerfilUsuario', JSON.stringify(mapeo));
+    console.log(`🗺️ Mapeo guardado: perfil ${perfilId} -> usuario ${usuarioId}`);
+  } catch (error) {
+    console.error("Error guardando mapeo:", error);
+  }
+}
+
 export default function VerPerfil() {
   const [perfil, setPerfil] = useState<PerfilType | null>(null);
   const [localidad, setLocalidad] = useState<LocalidadType | null>(null);
   const [rol, setRol] = useState<string | null>(null);
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
-  const [ultimaConexion, setUltimaConexion] = useState<string>("Calculando...");
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
+  const [usuarioId, setUsuarioId] = useState<number>(0);
+  
   const menuRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const perfilId = searchParams.get('id');
+
+  // Asegurar valores estables
+  const perfilIdEstable = perfilId ? parseInt(perfilId) : 0;
+  const usuarioIdEstable = usuarioId || 0;
+
+  // Usar el hook para obtener última conexión con valores estables
+  const { ultimaConexion, color } = useObtenerUltimaConexion(usuarioIdEstable, perfil?.id || perfilIdEstable);
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -73,55 +105,7 @@ export default function VerPerfil() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Función para calcular tiempo desde última conexión
-  const calcularUltimaConexion = (fechaConexion: string): string => {
-    const ahora = new Date();
-    const ultimaConexionDate = new Date(fechaConexion);
-    const diferenciaMs = ahora.getTime() - ultimaConexionDate.getTime();
-    
-    // Convertir a minutos, horas, días
-    const minutos = Math.floor(diferenciaMs / (1000 * 60));
-    const horas = Math.floor(diferenciaMs / (1000 * 60 * 60));
-    const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
-    
-    if (minutos < 1) {
-      return "Activo ahora";
-    } else if (minutos < 60) {
-      return `Hace ${minutos} minuto${minutos !== 1 ? 's' : ''}`;
-    } else if (horas < 24) {
-      return `Hace ${horas} hora${horas !== 1 ? 's' : ''}`;
-    } else if (dias < 7) {
-      return `Hace ${dias} día${dias !== 1 ? 's' : ''}`;
-    } else if (dias < 30) {
-      const semanas = Math.floor(dias / 7);
-      return `Hace ${semanas} semana${semanas !== 1 ? 's' : ''}`;
-    } else {
-      // Formato de fecha legible
-      return ultimaConexionDate.toLocaleDateString('es-AR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    }
-  };
-
-  // Función para simular última conexión (en una app real esto vendría del backend)
-  const simularUltimaConexion = (): string => {
-    const conexiones = [
-      new Date(Date.now() - 2 * 60 * 1000), // 2 minutos atrás
-      new Date(Date.now() - 15 * 60 * 1000), // 15 minutos atrás
-      new Date(Date.now() - 45 * 60 * 1000), // 45 minutos atrás
-      new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 horas atrás
-      new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 horas atrás
-      new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 día atrás
-      new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 días atrás
-    ];
-    
-    const conexionAleatoria = conexiones[Math.floor(Math.random() * conexiones.length)];
-    return conexionAleatoria.toISOString();
-  };
-
-  // Carga perfil + localidad + publicaciones
+  // Carga perfil + localidad + publicaciones + usuarioId
   useEffect(() => {
     async function load() {
       try {
@@ -135,7 +119,7 @@ export default function VerPerfil() {
 
         // Obtener perfil por ID
         const perfilData = await obtenerPerfilId(parseInt(perfilId));
-        console.log("perfilData:", perfilData);
+        console.log("📋 perfilData completo:", perfilData);
         
         if (!perfilData) {
           setErrorCarga("No se encontró el perfil");
@@ -144,19 +128,57 @@ export default function VerPerfil() {
         
         setPerfil(perfilData);
 
+        // ESTRATEGIA MEJORADA CON MAPEO
+        let usuarioIdFinal = 0;
+
+        // 1. Primero intentar con el usuarioIdUsuario si existe
+        if (perfilData.usuarioIdUsuario && perfilData.usuarioIdUsuario > 0) {
+          console.log("✅ UsuarioId encontrado en perfilData:", perfilData.usuarioIdUsuario);
+          usuarioIdFinal = perfilData.usuarioIdUsuario;
+        } else {
+          // 2. Buscar en el mapeo de localStorage
+          const mapeo = JSON.parse(localStorage.getItem('mapeoPerfilUsuario') || '{}');
+          const usuarioIdMapeado = mapeo[perfilData.id];
+          
+          if (usuarioIdMapeado && usuarioIdMapeado > 0) {
+            console.log("🗺️ UsuarioId encontrado en mapeo:", usuarioIdMapeado);
+            usuarioIdFinal = usuarioIdMapeado;
+          } else {
+            // 3. Intentar con la API como último recurso
+            console.log("🔍 Intentando obtener usuarioId mediante API...");
+            try {
+              const response = await fetch(`https://localhost:7168/api/Perfil/v1/perfil/user/${perfilData.id}`);
+              
+              if (response.ok) {
+                const userData = await response.json();
+                console.log("👤 Respuesta de API:", userData);
+                
+                usuarioIdFinal = userData.id || userData.usuarioId || userData.userId || 0;
+                
+                if (usuarioIdFinal > 0) {
+                  console.log("✅ UsuarioId desde API:", usuarioIdFinal);
+                  // Guardar en el mapeo para futuras consultas
+                  guardarMapeoPerfilUsuario(perfilData.id, usuarioIdFinal);
+                } else {
+                  throw new Error('UsuarioId no válido desde API');
+                }
+              } else {
+                console.warn(`⚠️ API respondió con status: ${response.status}`);
+                throw new Error(`API no disponible: ${response.status}`);
+              }
+            } catch (apiError) {
+              console.warn("⚠️ API no disponible:", apiError);
+              // No generamos fallback - mejor mostrar "No disponible"
+            }
+          }
+        }
+
+        console.log("🎯 UsuarioId final para conexión:", usuarioIdFinal);
+        setUsuarioId(usuarioIdFinal);
+
         // Obtener rol del usuario
         const esEmpresa = perfilData.cuitCuil.toString().length > 11;
         setRol(esEmpresa ? "Empresa" : "Persona");
-
-        // Calcular última conexión
-        if (perfilData.ultimaConexion) {
-          // Si viene del backend, usar esa fecha
-          setUltimaConexion(calcularUltimaConexion(perfilData.ultimaConexion));
-        } else {
-          // Simular última conexión (en desarrollo)
-          const conexionSimulada = simularUltimaConexion();
-          setUltimaConexion(calcularUltimaConexion(conexionSimulada));
-        }
 
         // Obtener localidad COMPLETA del perfil (con provincia)
         if (perfilData.localidadIdLocalidad) {
@@ -177,7 +199,7 @@ export default function VerPerfil() {
         // Obtener publicaciones del perfil
         try {
           const pubs = await obtenerPublicacion(perfilData.razonSocial);
-          console.log("pubs:", pubs);
+          console.log("📝 Publicaciones:", pubs);
           setPublicaciones(Array.isArray(pubs) ? pubs : [pubs]);
         } catch (publicacionError) {
           console.warn("No se pudieron cargar las publicaciones:", publicacionError);
@@ -197,7 +219,6 @@ export default function VerPerfil() {
   // Función para formatear la localidad y provincia
   const formatearLocalidad = () => {
     if (!localidad) {
-      // Si no hay localidad, intentar obtener de las publicaciones
       if (publicaciones.length > 0 && publicaciones[0].nombreLocalidadIdLocalidad) {
         return publicaciones[0].nombreLocalidadIdLocalidad;
       }
@@ -206,30 +227,13 @@ export default function VerPerfil() {
 
     let ubicacion = localidad.nombre || "";
     
-    // Agregar provincia si está disponible
     if (localidad.provincia && localidad.provincia.nombre) {
       ubicacion += `, ${localidad.provincia.nombre}`;
     } else if (localidad.nombreProvinciaIdProvincia) {
-      // Fallback: usar nombreProvinciaIdProvincia si existe
       ubicacion += `, ${localidad.nombreProvinciaIdProvincia}`;
     }
 
     return ubicacion || "Ubicación no disponible";
-  };
-
-  // Función para determinar el color según el tiempo de conexión
-  const getColorConexion = (texto: string): string => {
-    if (texto.includes("Activo ahora") || texto.includes("minuto")) {
-      return "text-green-600";
-    } else if (texto.includes("hora") && parseInt(texto.split(' ')[1]) <= 2) {
-      return "text-green-500";
-    } else if (texto.includes("hora") && parseInt(texto.split(' ')[1]) <= 6) {
-      return "text-yellow-600";
-    } else if (texto.includes("hora") || texto.includes("día") && parseInt(texto.split(' ')[1]) <= 1) {
-      return "text-orange-500";
-    } else {
-      return "text-gray-600";
-    }
   };
 
   // Función para toggle del menú
@@ -411,10 +415,10 @@ export default function VerPerfil() {
                       <p className="text-lg font-semibold text-gray-800">{perfil.cuitCuil}</p>
                     </div>
 
-                    {/* ÚLTIMA CONEXIÓN - MEJORADO CON LÓGICA REAL */}
+                    {/* ÚLTIMA CONEXIÓN - CON DATOS REALES DEL LOCALSTORAGE */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-500 mb-1">Última conexión</p>
-                      <p className={`text-lg font-semibold ${getColorConexion(ultimaConexion)}`}>
+                      <p className={`text-lg font-semibold ${color}`}>
                         {ultimaConexion}
                       </p>
                       {ultimaConexion.includes("Activo ahora") && (
