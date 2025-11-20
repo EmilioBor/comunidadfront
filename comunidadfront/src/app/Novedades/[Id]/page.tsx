@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '../../Inicio/components/Navbar';
 import Footer from '../../Inicio/components/Footer';
+import { obtenerNovedadPorId } from "./action";
 import Link from "next/link";
 
 interface Novedad {
@@ -24,52 +25,35 @@ export default function DetalleNovedadCliente() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+  let mounted = true;
 
-    async function fetchNovedad() {
-      setLoading(true);
-      setError(null);
+  async function fetchData() {
+    setLoading(true);
+    setError(null);
 
-      if (!id) {
-        setError('Id no presente en la ruta');
-        setLoading(false);
-        return;
-      }
-
-      if (Number.isNaN(Number(id))) {
-        setError('Id inválido: debe ser un número');
-        setLoading(false);
-        return;
-      }
-
-      const url = `https://localhost:7168/api/Novedad/api/v1/novedad/id/${encodeURIComponent(id)}`
-
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-
-        if (!res.ok) {
-          const contentType = res.headers.get('content-type') ?? '';
-          const body = contentType.includes('application/json')
-            ? JSON.stringify(await res.json())
-            : await res.text();
-          throw new Error(`Error al obtener la novedad (${res.status}): ${body}`);
-        }
-
-        const data: Novedad = await res.json();
-        if (mounted) setNovedad(data);
-      } catch (err: any) {
-        console.error('Fetch error details:', err);
-        if (mounted) setError(err?.message ?? 'Error desconocido');
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    if (!id) {
+      setError("Id no presente en la ruta");
+      setLoading(false);
+      return;
     }
 
-    fetchNovedad();
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
+    try {
+      const data = await obtenerNovedadPorId(id);
+      if (mounted) setNovedad(data);
+    } catch (err: any) {
+      console.error("Error:", err);
+      if (mounted) setError(err.message || "Error desconocido");
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  }
+
+  fetchData();
+  return () => {
+    mounted = false;
+  };
+}, [id]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white">

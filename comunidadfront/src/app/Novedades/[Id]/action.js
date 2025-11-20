@@ -1,6 +1,6 @@
 'use server'; 
-import {obtenerNovedadPorId} from "@/app/lib/api/novedad"
+import { getNovedadPorId } from "@/app/lib/api/novedad";
 
-export async function getIdNovedad(id) {
-    return await obtenerNovedadPorId(id);
+export async function obtenerNovedadPorId(id) {
+  return await getNovedadPorId(id);
 }

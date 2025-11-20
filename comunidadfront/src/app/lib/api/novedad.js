@@ -49,4 +49,21 @@ export async function getNovedades() {
         console.error(err);
       }
     }
+
+    // Obtener novedad por ID
+export async function getNovedadPorId(id) {
+  try {
+    const url = `https://localhost:7168/api/Novedad/api/v1/novedad/id/${id}`;
+    const response = await fetch(url, { cache: "no-store" });
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener novedad: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error en getNovedadPorId:", error);
+    throw error;
+  }
+}
     
