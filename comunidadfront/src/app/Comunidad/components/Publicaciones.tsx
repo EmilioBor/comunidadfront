@@ -5,6 +5,10 @@ import { useEffect, useState, useRef } from "react";
 import { obtenerPublicaciones, obtenerPerfilNombre } from "../actions";
 import CrearPublicacion from "./CrearPublicacion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { GetUserByPerfil } from "@/app/lib/api/perfil";
+
 
 interface Publicacion {
   id: number;
@@ -19,12 +23,30 @@ interface Publicacion {
   perfil?: any;
 }
 
+interface PerfilType {
+  id: number;
+  cuitCuil: number;
+  razonSocial: string;
+  descripcion: string;
+  cbu: number;
+  alias: string;
+  usuarioIdUsuario: number;
+  localidadIdLocalidad: number;
+  imagen: string;
+}
+
 export default function Perfil() {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [selectedTipo, setSelectedTipo] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [perfil, setPerfil] = useState<PerfilType | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+
+
+
 
   const loadPublicaciones = async () => {
     try {
@@ -91,6 +113,85 @@ export default function Perfil() {
     console.log(`URL de donación para publicación ${publicacion.id}:`, `/Donacion/Crear?${params.toString()}`);
     return `/Donacion/Crear?${params.toString()}`;
   };
+
+
+
+    // 🔹 Crear chat y redirigir
+    const handleChatClick = async (pub: Publicacion) => {
+      try {
+        // 1) usuario logeado desde iron-session
+                const me = await fetch("/api/user/me").then((r) => r.json());
+                console.log("📊 Datos del usuario logueado:", me);
+
+                
+                // Guardar el ID del usuario logueado - ESTE ES EL ID CORRECTO
+                setUserId(me.id);
+                console.log("🔑 ID del usuario logueado:", me.id);
+                
+                const perfilData = await GetUserByPerfil(me.id);
+                console.log("📄 Datos del perfil:", perfilData);
+                if (!perfilData) {
+                  router.push("/Perfil/Crear");
+                  return;
+                }
+                setPerfil(perfilData);
+        // const resUser = await fetch("/api/user/me").then((r) => r.json());
+        // console.log("📊 Datos del usuario logueado:", resUser);
+        // if (!resUser.ok) {
+        //   console.error("No se pudo obtener el usuario");
+        //   return;
+        // }
+        // const user = await resUser.json();
+
+        const perfilIdActual = perfilData.id; // ajustá al nombre real
+        const receptorId = pub.perfil?.id; // perfil dueño de la publicación
+        console.log("Perfil actual ID:", perfilIdActual);
+        console.log("Receptor ID:", receptorId);
+        if (!perfilIdActual || !receptorId) {
+          console.error("Faltan IDs de perfil/receptor");
+          return;
+        }
+
+        // 2) Crear chat (si ya existe, tu servicio lo devuelve)
+        const body = {
+          id: 0,
+          publicacionIdPublicacion: pub.id,
+          perfilIdPerfil: perfilIdActual,
+          receptorIdReceptor: receptorId,
+        };
+
+        const resChat = await fetch(
+          "https://localhost:7168/api/Chat/api/v1/agrega/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        );
+
+        if (!resChat.ok) {
+          console.error("Error al crear/obtener chat");
+          return;
+        }
+
+        const chat = await resChat.json();
+
+        // 3) Redirigir al chat
+        router.push(`/Chat/${chat.id}`);
+      } catch (err) {
+        console.error("Error en handleChatClick:", err);
+      }
+    };
+
+
+
+
+
+
+
+
+
+
 
   if (loading) {
     return (
@@ -186,7 +287,12 @@ export default function Perfil() {
               >
                 Donar
               </Link>
-              <button className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition">Chat</button>
+              <button
+                onClick={() => handleChatClick(pub)}
+                className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
+              >
+                Chat
+              </button>
             </div>
 
           </div>
