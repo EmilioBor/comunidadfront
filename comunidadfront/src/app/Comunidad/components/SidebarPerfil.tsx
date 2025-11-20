@@ -75,9 +75,12 @@ const SidebarPerfil = () => {
         </p>
 
         <div className="mt-4 flex flex-col gap-2 w-4/5">
-          <button className="bg-[#7DB575] text-white py-2 rounded-xl hover:bg-green-600 transition">
+          <Link
+            href="/Perfil/Donaciones"
+            className="bg-[#7DB575] text-white py-2 rounded-xl hover:bg-green-600 transition text-center block"
+          >
             Donaciones
-          </button>
+          </Link>
           <button className="bg-[#7DB575] text-white py-2 rounded-xl hover:bg-green-600 transition">
             Chats
           </button>
