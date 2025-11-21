@@ -5,7 +5,7 @@ import { getPerfilId } from "@/app/lib/api/perfil";
 import { getDonaciones } from "@/app/lib/api/donacionApi";
 
 /**
- * Obtiene las donaciones de un perfil específico por ID
+ * Obtiene las donaciones de un perfil específico por ID (tanto enviadas como recibidas)
  */
 export async function obtenerDonacionesDePerfil(perfilId) {
   try {
@@ -24,29 +24,35 @@ export async function obtenerDonacionesDePerfil(perfilId) {
     }
 
     const nombrePerfil = perfilData.razonSocial;
-    console.log("🔍 Buscando donaciones por nombre de perfil:", nombrePerfil);
+    console.log("🔍 Buscando donaciones para:", nombrePerfil);
 
     // Obtener TODAS las donaciones
     const todasLasDonaciones = await getDonaciones();
     console.log("📦 Total de donaciones obtenidas:", todasLasDonaciones.length);
 
-    // Filtrar donaciones por nombrePerfilDonanteIdPerfilDonante
+    // Filtrar donaciones tanto ENVIADAS como RECIBIDAS por el perfil
     const donacionesDelPerfil = todasLasDonaciones.filter(donacion => {
-      const coincide = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
-      if (coincide) {
-        console.log("✅ Donación coincide:", donacion.id, donacion.descripcion);
+      const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
+      const esDestinatario = donacion.nombrePerfilIdPerfil === nombrePerfil;
+      
+      if (esDonante) {
+        console.log("✅ Donación ENVIADA:", donacion.id, donacion.descripcion);
       }
-      return coincide;
+      if (esDestinatario) {
+        console.log("✅ Donación RECIBIDA:", donacion.id, donacion.descripcion);
+      }
+      
+      return esDonante || esDestinatario;
     });
 
-    console.log(`✅ Donaciones encontradas: ${donacionesDelPerfil.length}`);
+    console.log(`✅ Total donaciones encontradas: ${donacionesDelPerfil.length}`);
 
     return {
       success: true,
       data: formatearDonaciones(donacionesDelPerfil, nombrePerfil),
       perfil: perfilData,
       message: donacionesDelPerfil.length === 0 ? 
-        "No se encontraron donaciones realizadas por este perfil" : 
+        "No se encontraron donaciones para este perfil" : 
         `Se encontraron ${donacionesDelPerfil.length} donaciones`
     };
 
@@ -67,6 +73,8 @@ export async function obtenerDonacionesDePerfil(perfilId) {
  */
 function formatearDonaciones(donaciones, nombrePerfil) {
   return donaciones.map(donacion => {
+    const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
+    
     return {
       id: donacion.id,
       fecha: formatearFecha(donacion.fechaHora),
@@ -79,7 +87,9 @@ function formatearDonaciones(donaciones, nombrePerfil) {
       tipo: donacion.nombreDonacionTipoIdDonacionTipo || "Donación en especie",
       donante: donacion.nombrePerfilDonanteIdPerfilDonante || nombrePerfil,
       categoria: donacion.nombreDonacionTipoIdDonacionTipo,
-      fechaHora: donacion.fechaHora // Mantener la fecha original para ordenamiento
+      fechaHora: donacion.fechaHora, // Mantener la fecha original para ordenamiento
+      // Campo adicional para identificar el tipo
+      esEnviada: esDonante
     };
   });
 }

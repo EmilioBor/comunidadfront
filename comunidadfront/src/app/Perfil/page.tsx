@@ -248,28 +248,39 @@ export default function Perfil() {
 
           <p className="text-lg font-semibold text-black text-center">{perfil.razonSocial}</p>
 
-          <div className="mt-10 flex flex-col w-full gap-4">
+         <div className="mt-10 flex flex-col w-full gap-4">
+          <Link
+            href="/Perfil/Donaciones"
+            className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
+          >
+            Donaciones
+          </Link>
+          <Link
+            href="/Perfil/Chat"
+            className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
+          >
+            Chats
+          </Link>
+          
+          {/* BOTÓN VER REPORTES - SOLO PARA ADMINISTRADOR */}
+          {perfil?.razonSocial === "Comunidad Solidaria" && (
             <Link
-              href="/Perfil/Donaciones"
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
+              href="/Perfil/VerReportes"
+              className="bg-red-500 hover:bg-red-600 py-2 rounded-lg text-center text-white font-semibold transition-colors shadow-md hover:shadow-lg"
             >
-              Donaciones
+              Ver Reportes
             </Link>
+          )}
+          
+          {rol === "Empresa" && (
             <Link
-              href="/Perfil/Chat"
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
+              href={`/Perfil/CrearNovedad/?idPerfil=${perfil.id}`}
+              className="bg-blue-500 hover:bg-blue-600 py-2 rounded-lg text-center text-white font-semibold transition-colors shadow-md hover:shadow-lg"
             >
-              Chats
+              Crear Novedad
             </Link>
-            {rol === "Empresa" && (
-              <Link
-                href={`/Perfil/CrearNovedad/?idPerfil=${perfil.id}`}
-                className="bg-blue-500 hover:bg-blue-600 py-2 rounded-lg text-center text-white font-semibold transition-colors shadow-md hover:shadow-lg"
-              >
-                Crear Novedad
-              </Link>
-            )}
-          </div>
+          )}
+</div>
         </aside>
 
         {/* COLUMNA CENTRAL */}
