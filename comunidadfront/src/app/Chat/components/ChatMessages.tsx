@@ -13,7 +13,6 @@ export default function ChatMessages({ messages, bottomRef }: any) {
                 : "bg-white text-black rounded-bl-sm"}`}
           >
             <p>{m.contenido}</p>
-            <p>{m.perfilIdPerfil}</p>
             <p className="text-[10px] opacity-80 text-right mt-1">
               {new Date(m.fechaHora).toLocaleTimeString("es-AR", {
                 hour: "2-digit",

@@ -8,6 +8,7 @@ export interface ChatMessage {
   id: number;
   contenido: string;
   fechaHora: string;
+   perfilIdPerfil: number; 
   perfilNombre: string;
   soyYo: boolean;
 }
@@ -87,6 +88,7 @@ export function useChat({ id, perfilNombre, enabled = true }: UseChatOptions) {
             contenido: m.contenido,
             fechaHora: m.fechaHora,
             perfilNombre: m.nombrePerfilIdPerfil,
+            perfilIdPerfil: m.perfilIdPerfil,
             soyYo: m.nombrePerfilIdPerfil === perfilNombre,
           }))
         );
@@ -100,39 +102,63 @@ export function useChat({ id, perfilNombre, enabled = true }: UseChatOptions) {
     loadMessages();
   }, [id, enabled, chatInfo, perfilNombre]);
 
-  // 3️⃣ Conexión SignalR
-  useEffect(() => {
-    if (!enabled) return;
+// 3️⃣ Conexión SignalR
+useEffect(() => {
+  if (!enabled) return;
 
-    const conn = new signalR.HubConnectionBuilder()
-      .withUrl(`https://localhost:7168/chatHub?chatId=${id}`)
-      .withAutomaticReconnect()
-      .build();
+  const initConnection = async () => {
+    try {
+      // Obtener usuario logueado
+      const me = await fetch("/api/user/me").then(r => r.json());
+      console.log("📊 Datos del usuario logueado:", me);
 
-    conn.start()
-      .then(() => console.log("Conectado al Hub", id))
-      .catch(err => console.error("Error conectando al Hub:", err));
+      // Guardar el ID del usuario logueado
+      setUserId(me.id);
 
-    conn.on("ReceiveMessage", (autorNombre: string, contenido: string) => {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now(),
-          contenido,
-          fechaHora: new Date().toISOString(),
-          perfilNombre: autorNombre,
-          soyYo: autorNombre === perfilNombre,
-        },
-      ]);
-    });
+      // Obtener datos del perfil
+      const perfilData = await GetUserByPerfil(me.id);
+      console.log("📄 Datos del perfil:", perfilData);
+      setPerfil(perfilData);
 
-    setConnection(conn);
+      // Crear conexión SignalR
+      const conn = new signalR.HubConnectionBuilder()
+        .withUrl(`https://localhost:7168/chatHub?chatId=${id}`)
+        .withAutomaticReconnect()
+        .build();
 
-    return () => {
-      conn.off("ReceiveMessage");
-      conn.stop();
-    };
-  }, [id, enabled, perfilNombre]);
+      await conn.start();
+      console.log("Conectado al Hub", id);
+
+      // Recibir mensajes
+      conn.on("ReceiveMessage", (autorId: number, contenido: string, autorNombre: string) => {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: Date.now(),
+            contenido,
+            fechaHora: new Date().toISOString(),
+            perfilNombre: autorNombre,
+            perfilIdPerfil: autorId,
+            soyYo: autorId === perfilData.id,
+          },
+        ]);
+      });
+
+      setConnection(conn);
+    } catch (err) {
+      console.error("Error inicializando Hub:", err);
+    }
+  };
+
+  initConnection();
+
+  // Cleanup al desmontar
+  return () => {
+    connection?.off("ReceiveMessage");
+    connection?.stop();
+  };
+}, [id, enabled]);
+
 
   // 4️⃣ Autoscroll
   useEffect(() => {
@@ -182,7 +208,7 @@ const sendMessage = async (texto: string) => {
 
     if (!res.ok) throw new Error("Error guardando mensaje en la DB");
 
-    if (!perfil?.id) {
+    if (!perfilData?.id) {
       console.error("No se puede enviar mensaje: perfil.id no definido");
       return;
     }
