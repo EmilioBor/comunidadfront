@@ -1,11 +1,9 @@
-// app/Perfil/VerReportes/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Navbar from "@/app/Inicio/components/Navbar";
+import Navbar from "../../Inicio/components/Navbar";
 import { obtenerReportesCompletos, enviarAdvertenciaUsuario } from "./actions";
 
 interface Publicacion {
@@ -15,33 +13,43 @@ interface Publicacion {
   imagen: string;
   perfilIdPerfil: number;
   nombrePerfilIdPerfil: string;
+  fechaCreacion?: string;
 }
 
 interface Perfil {
   id: number;
   razonSocial: string;
   imagen: string;
+  descripcion?: string;
 }
 
 interface Reporte {
   id: number;
   descripcion: string;
   motivo: string;
-  perfilIdPerfil: number;
-  publicacionIdPublicacion: number;
+  fechaCreacion?: string;
+  fechaReporte?: string;
+  // IDs
+  publicacionId?: number;
+  perfilReportadorId?: number;
+  perfilReportadoId?: number;
+  // Datos enriquecidos
   publicacion?: Publicacion;
   perfilReportador?: Perfil;
   perfilReportado?: Perfil;
-  fechaCreacion?: string;
+  // Campos para compatibilidad
+  publicacionIdPublicacion?: number;
+  perfilIdPerfil?: number;
   estado?: string;
 }
 
-// Tipos de motivos con colores
+// Tipos de motivos con colores - ACTUALIZADO para coincidir con tus datos
 const MOTIVOS_REPORTES = [
   { id: "todos", nombre: "Todos los reportes", color: "bg-gray-100 text-gray-800" },
+  { id: "Información falsa", nombre: "Información Falsa", color: "bg-orange-100 text-orange-800" },
+  { id: "Usuario fraudulento", nombre: "Usuario Fraudulento", color: "bg-purple-100 text-purple-800" },
   { id: "contenido_inapropiado", nombre: "Contenido Inapropiado", color: "bg-red-100 text-red-800" },
   { id: "spam", nombre: "Spam", color: "bg-yellow-100 text-yellow-800" },
-  { id: "informacion_falsa", nombre: "Información Falsa", color: "bg-orange-100 text-orange-800" },
   { id: "acoso", nombre: "Acoso", color: "bg-purple-100 text-purple-800" },
   { id: "otros", nombre: "Otros", color: "bg-blue-100 text-blue-800" }
 ];
@@ -88,8 +96,16 @@ export default function VerReportes() {
     perfilId: null,
     razonSocial: ""
   });
+  const [publicacionModal, setPublicacionModal] = useState<{
+    mostrar: boolean;
+    publicacion: Publicacion | null;
+  }>({
+    mostrar: false,
+    publicacion: null
+  });
   const [mensajeAdvertencia, setMensajeAdvertencia] = useState("");
   const [enviandoAdvertencia, setEnviandoAdvertencia] = useState(false);
+  const [stats, setStats] = useState({conPublicacion: 0, conPerfilReportador: 0});
 
   const router = useRouter();
 
@@ -101,16 +117,20 @@ export default function VerReportes() {
     try {
       setLoading(true);
       setError(null);
+      console.log("🔄 Iniciando carga de reportes...");
+      
       const resultado = await obtenerReportesCompletos();
+      console.log("📦 Resultado obtenido:", resultado);
       
       if (resultado.success) {
         setReportes(resultado.data || []);
+        setStats(resultado.stats || {conPublicacion: 0, conPerfilReportador: 0});
       } else {
         setError(resultado.error || "Error al cargar reportes");
       }
     } catch (err) {
+      console.error("💥 Error inesperado:", err);
       setError("Error inesperado al cargar reportes");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -126,7 +146,7 @@ export default function VerReportes() {
     ? reportesFiltrados 
     : reportesFiltrados.slice(0, 4);
 
-  // Estadísticas por motivo
+  // Estadísticas por motivo - CORREGIDO
   const estadisticasPorMotivo = MOTIVOS_REPORTES.filter(motivo => motivo.id !== "todos").map(motivo => {
     const cantidad = reportes.filter(reporte => reporte.motivo === motivo.id).length;
     return {
@@ -134,6 +154,21 @@ export default function VerReportes() {
       cantidad
     };
   });
+
+  // Función para abrir modal de publicación
+  const abrirModalPublicacion = (publicacion: Publicacion) => {
+    setPublicacionModal({
+      mostrar: true,
+      publicacion
+    });
+  };
+
+  const cerrarModalPublicacion = () => {
+    setPublicacionModal({
+      mostrar: false,
+      publicacion: null
+    });
+  };
 
   const abrirModalAdvertencia = (perfilId: number, razonSocial: string) => {
     setAdvertenciaModal({
@@ -179,7 +214,6 @@ export default function VerReportes() {
 
   const marcarComoResuelto = async (reporteId: number) => {
     try {
-      // Actualizar estado local
       setReportes(prev => 
         prev.map(reporte => 
           reporte.id === reporteId 
@@ -187,7 +221,6 @@ export default function VerReportes() {
             : reporte
         )
       );
-      
       alert("Reporte marcado como resuelto");
     } catch (err) {
       alert("Error al marcar el reporte como resuelto");
@@ -222,6 +255,9 @@ export default function VerReportes() {
                 <h1 className="text-3xl font-bold text-gray-900">Reportes de la Comunidad</h1>
                 <p className="text-gray-600 mt-2">
                   {reportesFiltrados.length} reporte(s) pendiente(s) de revisión
+                </p>
+                <p className="text-sm text-gray-500">
+                  Con publicación: {stats.conPublicacion} • Con reportador: {stats.conPerfilReportador}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -354,9 +390,14 @@ export default function VerReportes() {
                           {reporte.motivo || "Sin motivo"}
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
-                          {formatearFecha(reporte.fechaCreacion)}
+                          {formatearFecha(reporte.fechaCreacion || reporte.fechaReporte)}
                         </p>
                       </div>
+                      {reporte.estado === 'resuelto' && (
+                        <span className="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                          Resuelto
+                        </span>
+                      )}
                     </div>
                     
                     <p className="text-gray-700 text-sm line-clamp-2">
@@ -386,41 +427,100 @@ export default function VerReportes() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {reporte.perfilReportador.razonSocial}
                           </p>
+                          {/* REMOVIDO: <p className="text-xs text-gray-500">ID: {reporte.perfilReportadorId}</p> */}
                         </div>
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-sm">Información no disponible</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-xs text-gray-600">?</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Información no disponible</p>
+                        </div>
+                      </div>
                     )}
                   </div>
 
                   {/* Publicación Reportada */}
                   <div className="p-4 border-b border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Publicación:</h4>
+                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Publicación Reportada:</h4>
                     {reporte.publicacion ? (
-                      <div className="flex gap-3">
+                      <div 
+                        className="flex gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                        onClick={() => abrirModalPublicacion(reporte.publicacion!)}
+                      >
                         <div className="flex-shrink-0">
-                          <img
-                            src={`data:image/jpeg;base64,${reporte.publicacion.imagen}`}
-                            alt={reporte.publicacion.titulo}
-                            className="w-12 h-12 object-cover rounded-lg"
-                          />
+                          {reporte.publicacion.imagen ? (
+                            <img
+                              src={`data:image/jpeg;base64,${reporte.publicacion.imagen}`}
+                              alt={reporte.publicacion.titulo}
+                              className="w-12 h-12 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <span className="text-gray-400 text-xs">📷</span>
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {reporte.publicacion.titulo}
+                            {reporte.publicacion.titulo || "Sin título"}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {reporte.publicacion.descripcion}
+                          <p className="text-xs text-gray-500 line-clamp-2">
+                            {reporte.publicacion.descripcion || "Sin descripción"}
                           </p>
-                          {reporte.perfilReportado && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              Por: {reporte.perfilReportado.razonSocial}
-                            </p>
-                          )}
+                          <p className="text-xs text-blue-600 mt-1 font-medium">
+                            Click para ver detalles
+                          </p>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-sm">Publicación no disponible</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400 text-xs">📄</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Publicación no disponible</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Perfil Reportado */}
+                  <div className="p-4 border-b border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Perfil Reportado:</h4>
+                    {reporte.perfilReportado ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                          {reporte.perfilReportado.imagen ? (
+                            <img
+                              src={`data:image/jpeg;base64,${reporte.perfilReportado.imagen}`}
+                              alt={reporte.perfilReportado.razonSocial}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-xs font-medium">
+                              {reporte.perfilReportado.razonSocial.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {reporte.perfilReportado.razonSocial}
+                          </p>
+                          {/* REMOVIDO: <p className="text-xs text-gray-500">ID: {reporte.perfilReportadoId}</p> */}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-xs text-gray-600">👤</span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Información no disponible</p>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -437,16 +537,17 @@ export default function VerReportes() {
                           }
                         }}
                         className="flex-1 bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!reporte.perfilReportado}
+                        disabled={!reporte.perfilReportado || reporte.estado === 'resuelto'}
                       >
                         Advertir
                       </button>
                       
                       <button 
                         onClick={() => marcarComoResuelto(reporte.id)}
-                        className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+                        className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={reporte.estado === 'resuelto'}
                       >
-                        Resolver
+                        {reporte.estado === 'resuelto' ? 'Resuelto' : 'Resolver'}
                       </button>
                     </div>
                   </div>
@@ -457,10 +558,88 @@ export default function VerReportes() {
         </div>
       </div>
 
-      {/* Modal de Advertencia */}
+      {/* Modal de Publicación - VENTANA MEDIANA */}
+      {publicacionModal.mostrar && publicacionModal.publicacion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Fondo con blur del contenido actual */}
+          <div 
+            className="absolute inset-0 bg-gray-50 backdrop-blur-sm bg-opacity-90"
+            onClick={cerrarModalPublicacion}
+          ></div>
+          
+          {/* Contenido del modal - TAMAÑO MEDIANO */}
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[85vh] overflow-y-auto">
+            <button 
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
+              onClick={cerrarModalPublicacion}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">Publicación Reportada</h3>
+
+              <div className="space-y-6">
+                {/* IMAGEN DE LA PUBLICACIÓN */}
+                {publicacionModal.publicacion.imagen && (
+                  <div className="flex justify-center">
+                    <img
+                      src={`data:image/jpeg;base64,${publicacionModal.publicacion.imagen}`}
+                      alt={publicacionModal.publicacion.titulo}
+                      className="max-w-full h-64 object-cover rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
+                
+                {/* INFORMACIÓN DE LA PUBLICACIÓN */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                    {publicacionModal.publicacion.titulo}
+                  </h4>
+                  
+                  <p className="text-gray-600 mb-3">
+                    {publicacionModal.publicacion.descripcion}
+                  </p>
+                  
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>
+                      <strong>Publicado por:</strong> {publicacionModal.publicacion.nombrePerfilIdPerfil}
+                    </p>
+                    {publicacionModal.publicacion.fechaCreacion && (
+                      <p>
+                        <strong>Fecha de creación:</strong> {formatearFecha(publicacionModal.publicacion.fechaCreacion)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Advertencia - VENTANA MEDIANA */}
       {advertenciaModal.mostrar && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Fondo con blur del contenido actual */}
+          <div 
+            className="absolute inset-0 bg-gray-50 backdrop-blur-sm bg-opacity-90"
+            onClick={cerrarModalAdvertencia}
+          ></div>
+          
+          {/* Contenido del modal - TAMAÑO MEDIANO */}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <button 
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 transition-colors z-10 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
+              onClick={cerrarModalAdvertencia}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               Enviar Advertencia a {advertenciaModal.razonSocial}
             </h3>
@@ -472,7 +651,7 @@ export default function VerReportes() {
               <textarea
                 value={mensajeAdvertencia}
                 onChange={(e) => setMensajeAdvertencia(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-black" // AGREGADO text-black
                 rows={4}
                 placeholder="Escribe el mensaje de advertencia..."
               />
