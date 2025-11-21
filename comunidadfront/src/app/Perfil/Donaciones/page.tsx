@@ -24,6 +24,14 @@ interface Donacion {
   fechaHora?: string;
 }
 
+interface DetalleDonacion {
+  id: number;
+  descripcion: string;
+  nombreDonacionIdDonacion: string;  // Este campo contiene la DESCRIPCIÓN de la donación
+  cantidad: number;
+  nombreDonacionEstadoIdDonacionEstado: string;
+}
+
 interface PerfilType {
   id: number;
   cuitCuil: number;
@@ -78,6 +86,54 @@ const formatearMonto = (monto: any) => {
   return `$${numero.toLocaleString('es-AR')}`;
 };
 
+// Función para obtener TODOS los detalles de donación
+async function obtenerTodosLosDetallesDonacion(): Promise<DetalleDonacion[]> {
+  try {
+    const response = await fetch(`https://localhost:7168/api/DetalleDonacion/api/v1/detalleDonacions`);
+    
+    if (!response.ok) {
+      throw new Error(`Error al obtener detalles: ${response.status}`);
+    }
+    
+    const detalles = await response.json();
+    
+    console.log("📦 Total de detalles cargados:", detalles.length);
+    
+    // Asegurarnos de que siempre devolvemos un array
+    if (Array.isArray(detalles)) {
+      return detalles;
+    } else if (detalles && typeof detalles === 'object') {
+      return [detalles];
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Error obteniendo detalles de donación:", error);
+    throw error;
+  }
+}
+
+// Función para filtrar detalles por descripción de donación
+function filtrarDetallesPorDescripcion(detalles: DetalleDonacion[], descripcionDonacion: string): DetalleDonacion[] {
+  console.log(`🔍 Filtrando detalles para descripción: "${descripcionDonacion}"`);
+  
+  const detallesFiltrados = detalles.filter(detalle => {
+    // Coincidencia EXACTA (case insensitive)
+    const coincideExacto = detalle.nombreDonacionIdDonacion && descripcionDonacion &&
+      detalle.nombreDonacionIdDonacion.toLowerCase() === descripcionDonacion.toLowerCase();
+    
+    if (coincideExacto) {
+      console.log(`   ✅ COINCIDE: "${detalle.nombreDonacionIdDonacion}"`);
+      return true;
+    }
+    
+    return false;
+  });
+  
+  console.log(`✅ Detalles encontrados: ${detallesFiltrados.length}`);
+  return detallesFiltrados;
+}
+
 export default function Donaciones() {
   const [donaciones, setDonaciones] = useState<Donacion[]>([]);
   const [perfil, setPerfil] = useState<PerfilType | null>(null);
@@ -86,8 +142,32 @@ export default function Donaciones() {
   const [info, setInfo] = useState("");
   const [mostrarTodas, setMostrarTodas] = useState(false);
   const [categoriaFiltro, setCategoriaFiltro] = useState("todos");
+  const [tipoVista, setTipoVista] = useState<"enviadas" | "recibidas">("enviadas");
+  
+  // Estados para el modal de detalles
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [donacionSeleccionada, setDonacionSeleccionada] = useState<Donacion | null>(null);
+  const [detallesDonacion, setDetallesDonacion] = useState<DetalleDonacion[]>([]);
+  const [cargandoDetalles, setCargandoDetalles] = useState(false);
+  const [errorDetalles, setErrorDetalles] = useState("");
+  const [todosLosDetalles, setTodosLosDetalles] = useState<DetalleDonacion[]>([]);
 
   const router = useRouter();
+
+  // Cargar todos los detalles al montar el componente
+  useEffect(() => {
+    async function cargarTodosLosDetalles() {
+      try {
+        console.log("🔄 Cargando todos los detalles de donación...");
+        const detalles = await obtenerTodosLosDetallesDonacion();
+        setTodosLosDetalles(detalles);
+      } catch (error) {
+        console.error("Error cargando todos los detalles:", error);
+      }
+    }
+
+    cargarTodosLosDetalles();
+  }, []);
 
   // Ordenar donaciones por fecha (más recientes primero)
   const donacionesOrdenadas = [...donaciones].sort((a, b) => {
@@ -139,6 +219,60 @@ export default function Donaciones() {
     }
   };
 
+  const cambiarTipoVista = (nuevoTipo: "enviadas" | "recibidas") => {
+    setTipoVista(nuevoTipo);
+    setMostrarTodas(false);
+    setCategoriaFiltro("todos");
+  };
+
+  // Función para abrir el modal con los detalles
+  const abrirModalDetalles = async (donacion: Donacion) => {
+    setDonacionSeleccionada(donacion);
+    setCargandoDetalles(true);
+    setErrorDetalles("");
+    setModalAbierto(true);
+
+    try {
+      console.log(`🔍 Buscando detalles para donación ID: ${donacion.id}`);
+      console.log(`📝 Descripción de la donación: "${donacion.descripcion}"`);
+      
+      // Filtrar los detalles por la descripción de la donación
+      const detallesFiltrados = filtrarDetallesPorDescripcion(todosLosDetalles, donacion.descripcion);
+      
+      console.log(`✅ Detalles encontrados: ${detallesFiltrados.length}`);
+      
+      setDetallesDonacion(detallesFiltrados);
+      
+      if (detallesFiltrados.length === 0) {
+        setErrorDetalles(`No se encontraron detalles específicos para esta donación`);
+      }
+    } catch (err) {
+      console.error("Error al cargar detalles:", err);
+      setErrorDetalles("No se pudieron cargar los detalles de la donación");
+    } finally {
+      setCargandoDetalles(false);
+    }
+  };
+
+  // Función para cerrar el modal
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setDonacionSeleccionada(null);
+    setDetallesDonacion([]);
+    setErrorDetalles("");
+  };
+
+  // Función auxiliar para asegurar que tenemos un array de detalles
+  const obtenerArrayDetalles = (detalles: DetalleDonacion[] | DetalleDonacion): DetalleDonacion[] => {
+    if (Array.isArray(detalles)) {
+      return detalles;
+    } else if (detalles && typeof detalles === 'object') {
+      return [detalles];
+    } else {
+      return [];
+    }
+  };
+
   useEffect(() => {
     async function cargarDatos() {
       try {
@@ -172,24 +306,32 @@ export default function Donaciones() {
         try {
           todasLasDonaciones = await getDonaciones();
           console.log("📦 Total de donaciones:", todasLasDonaciones.length);
-          console.log("📋 Ejemplo de donación:", todasLasDonaciones[0]);
         } catch (err) {
           console.warn("⚠️ No se pudieron obtener las donaciones:", err.message);
           setInfo("No se pudieron cargar las donaciones del servidor");
           todasLasDonaciones = [];
         }
 
-        // Filtrar donaciones por nombrePerfilDonanteIdPerfilDonante
-        const donacionesDelPerfil = todasLasDonaciones.filter(donacion => 
-          donacion.nombrePerfilDonanteIdPerfilDonante === perfilData.razonSocial
-        );
+        // Filtrar donaciones según el tipo de vista seleccionado
+        let donacionesFiltradas = [];
+        if (tipoVista === "enviadas") {
+          // Donaciones enviadas - donde el perfil actual es el donante
+          donacionesFiltradas = todasLasDonaciones.filter(donacion => 
+            donacion.nombrePerfilDonanteIdPerfilDonante === perfilData.razonSocial
+          );
+          console.log(`✅ Donaciones enviadas: ${donacionesFiltradas.length}`);
+        } else {
+          // Donaciones recibidas - donde el perfil actual es el destinatario
+          donacionesFiltradas = todasLasDonaciones.filter(donacion => 
+            donacion.nombrePerfilIdPerfil === perfilData.razonSocial
+          );
+          console.log(`✅ Donaciones recibidas: ${donacionesFiltradas.length}`);
+        }
 
-        console.log(`✅ Donaciones del perfil: ${donacionesDelPerfil.length}`);
-
-        // Formatear donaciones - CORREGIDO para manejar fechaHora
-        const donacionesFormateadas = donacionesDelPerfil.map(donacion => ({
+        // Formatear donaciones
+        const donacionesFormateadas = donacionesFiltradas.map(donacion => ({
           id: donacion.id,
-          fecha: formatearFecha(donacion.fechaHora), // Usar fechaHora del backend
+          fecha: formatearFecha(donacion.fechaHora),
           monto: formatearMonto(donacion.monto),
           destinatario: donacion.nombrePerfilIdPerfil || "Destinatario no especificado",
           cbu: "No aplica para donaciones en especie",
@@ -199,15 +341,15 @@ export default function Donaciones() {
           tipo: donacion.nombreDonacionTipoIdDonacionTipo || "Donación en especie",
           donante: donacion.nombrePerfilDonanteIdPerfilDonante || perfilData.razonSocial,
           categoria: donacion.nombreDonacionTipoIdDonacionTipo,
-          fechaHora: donacion.fechaHora // Mantener la fecha original del backend
+          fechaHora: donacion.fechaHora
         }));
 
         setDonaciones(donacionesFormateadas);
 
-        if (donacionesDelPerfil.length === 0 && todasLasDonaciones.length === 0) {
+        if (donacionesFiltradas.length === 0 && todasLasDonaciones.length === 0) {
           setInfo("No se encontraron donaciones en el sistema");
-        } else if (donacionesDelPerfil.length === 0) {
-          setInfo("No se encontraron donaciones realizadas por este perfil");
+        } else if (donacionesFiltradas.length === 0) {
+          setInfo(`No se encontraron donaciones ${tipoVista === "enviadas" ? "realizadas" : "recibidas"} por este perfil`);
         }
 
       } catch (err) {
@@ -219,7 +361,7 @@ export default function Donaciones() {
     }
 
     cargarDatos();
-  }, [router]);
+  }, [router, tipoVista]);
 
   if (loading) {
     return (
@@ -297,10 +439,46 @@ export default function Donaciones() {
         <main className="w-3/4 p-8">
           {/* HEADER */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Historial de Donaciones</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Historial de Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}
+            </h1>
             <p className="text-gray-600">
-              Revisa todas las donaciones que has realizado
+              {tipoVista === "enviadas" 
+                ? "Revisa todas las donaciones que has realizado" 
+                : "Revisa todas las donaciones que has recibido"
+              }
             </p>
+          </div>
+
+          {/* PANEL DE DOS BOTONES - ENVIADAS/RECIBIDAS */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div className="flex">
+                {/* BOTÓN DONACIONES ENVIADAS */}
+                <button
+                  onClick={() => cambiarTipoVista("enviadas")}
+                  className={`flex-1 py-4 px-6 text-center font-semibold transition-all duration-200 ${
+                    tipoVista === "enviadas" 
+                      ? "bg-gray-300 text-gray-800 shadow-inner" 
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Donaciones Enviadas
+                </button>
+                
+                {/* BOTÓN DONACIONES RECIBIDAS */}
+                <button
+                  onClick={() => cambiarTipoVista("recibidas")}
+                  className={`flex-1 py-4 px-6 text-center font-semibold transition-all duration-200 ${
+                    tipoVista === "recibidas" 
+                      ? "bg-gray-300 text-gray-800 shadow-inner" 
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Donaciones Recibidas
+                </button>
+              </div>
+            </div>
           </div>
 
           {error && (
@@ -318,7 +496,9 @@ export default function Donaciones() {
           {/* ESTADÍSTICAS RESUMEN */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Donaciones</h3>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                Total Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}
+              </h3>
               <p className="text-2xl font-bold text-green-600">{donaciones.length}</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -334,10 +514,12 @@ export default function Donaciones() {
             </div>
           </div>
 
-          {/* ESTADÍSTICAS POR CATEGORÍA - SIN RESUMEN */}
+          {/* ESTADÍSTICAS POR CATEGORÍA */}
           <section className="bg-white rounded-xl shadow-sm border mb-8">
             <div className="p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-800">Donaciones por Categoría</h2>
+              <h2 className="text-xl font-bold text-gray-800">
+                Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"} por Categoría
+              </h2>
             </div>
             
             <div className="p-6">
@@ -367,17 +549,20 @@ export default function Donaciones() {
             <div className="p-6 border-b flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">
-                  {mostrarTodas ? 'Todas las Donaciones' : 'Últimas Donaciones'}
+                  {mostrarTodas 
+                    ? `Todas las Donaciones ${tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}` 
+                    : `Últimas Donaciones ${tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}`
+                  }
                 </h2>
                 <p className="text-gray-600 text-sm mt-1">
                   {mostrarTodas 
                     ? `Mostrando ${donacionesFiltradas.length} de ${donaciones.length} donaciones` 
-                    : 'Tus donaciones más recientes'
+                    : `Tus donaciones ${tipoVista === "enviadas" ? "realizadas" : "recibidas"} más recientes`
                   }
                 </p>
               </div>
 
-              {/* Filtro por categoría (solo cuando se muestran todas) - CORREGIDO COLOR */}
+              {/* Filtro por categoría (solo cuando se muestran todas) */}
               {mostrarTodas && (
                 <div className="flex items-center gap-4">
                   <select
@@ -408,11 +593,14 @@ export default function Donaciones() {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  {categoriaFiltro === "todos" ? 'No hay donaciones registradas' : 'No hay donaciones en esta categoría'}
+                  {categoriaFiltro === "todos" 
+                    ? `No hay donaciones ${tipoVista === "enviadas" ? "enviadas" : "recibidas"} registradas` 
+                    : 'No hay donaciones en esta categoría'
+                  }
                 </h3>
                 <p className="text-gray-500 mb-4">
                   {categoriaFiltro === "todos" 
-                    ? (info || "Todavía no has realizado ninguna donación.")
+                    ? (info || `Todavía no has ${tipoVista === "enviadas" ? "realizado" : "recibido"} ninguna donación.`)
                     : `No se encontraron donaciones en la categoría "${TIPOS_DONACIONES.find(t => t.id === categoriaFiltro)?.nombre}"`
                   }
                 </p>
@@ -439,7 +627,10 @@ export default function Donaciones() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h3 className="text-lg font-semibold text-gray-800">
-                            Donación a {donacion.destinatario}
+                            {tipoVista === "enviadas" 
+                              ? `Donación a ${donacion.destinatario}`
+                              : `Donación de ${donacion.donante}`
+                            }
                           </h3>
                           <p className="text-gray-600 text-sm">{donacion.fecha}</p>
                         </div>
@@ -461,12 +652,19 @@ export default function Donaciones() {
                         </div>
                         <div>
                           <p><strong>Categoría:</strong> {donacion.categoria}</p>
-                          <p><strong>Destinatario:</strong> {donacion.destinatario}</p>
+                          {tipoVista === "enviadas" ? (
+                            <p><strong>Destinatario:</strong> {donacion.destinatario}</p>
+                          ) : (
+                            <p><strong>Donante:</strong> {donacion.donante}</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="mt-4 flex justify-end">
-                        <button className="text-blue-600 hover:text-blue-800 font-medium text-sm transition">
+                        <button 
+                          onClick={() => abrirModalDetalles(donacion)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm transition"
+                        >
                           Ver detalles →
                         </button>
                       </div>
@@ -504,6 +702,139 @@ export default function Donaciones() {
           </section>
         </main>
       </div>
+
+      {/* MODAL DE DETALLES */}
+      {modalAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header del Modal */}
+            <div className="p-6 border-b bg-gray-50 rounded-t-xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Detalles de la Donación
+                </h2>
+                <button
+                  onClick={cerrarModal}
+                  className="text-gray-500 hover:text-gray-700 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div className="p-6">
+              {cargandoDetalles ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Cargando detalles...</span>
+                </div>
+              ) : errorDetalles ? (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {errorDetalles}
+                </div>
+              ) : (
+                <>
+                  {/* Información general de la donación - TEXTO MÁS OSCURO */}
+                  {donacionSeleccionada && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Información General</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700"> {/* Texto más oscuro */}
+                        <div>
+                          <p><strong>Fecha:</strong> {donacionSeleccionada.fecha}</p>
+                          <p><strong>Monto/Valor:</strong> {donacionSeleccionada.monto}</p>
+                          <p><strong>Tipo:</strong> {donacionSeleccionada.tipo}</p>
+                        </div>
+                        <div>
+                          <p><strong>Categoría:</strong> {donacionSeleccionada.categoria}</p>
+                          {tipoVista === "enviadas" ? (
+                            <p><strong>Destinatario:</strong> {donacionSeleccionada.destinatario}</p>
+                          ) : (
+                            <p><strong>Donante:</strong> {donacionSeleccionada.donante}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 text-gray-700"> {/* Texto más oscuro */}
+                        <p><strong>Descripción:</strong> {donacionSeleccionada.descripcion}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detalles específicos */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Detalles Específicos</h3>
+                      <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                        {detallesDonacion.length} {detallesDonacion.length === 1 ? 'detalle' : 'detalles'}
+                      </span>
+                    </div>
+                    
+                    {detallesDonacion.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p>No hay detalles adicionales para esta donación</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {obtenerArrayDetalles(detallesDonacion).map((detalle, index) => (
+                          <div key={detalle.id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="font-semibold text-gray-700">
+                                Item #{index + 1}
+                              </h4>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                detalle.nombreDonacionEstadoIdDonacionEstado === 'Completada' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : detalle.nombreDonacionEstadoIdDonacionEstado === 'Pendiente'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : detalle.nombreDonacionEstadoIdDonacionEstado === 'Cancelada'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {detalle.nombreDonacionEstadoIdDonacionEstado}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                              <div>
+                                <p><strong>Descripción del item:</strong></p>
+                                <p className="mt-1">{detalle.descripcion}</p>
+                              </div>
+                              <div>
+                                <p><strong>Cantidad:</strong></p>
+                                <p className="mt-1 text-lg font-semibold">{detalle.cantidad} unidades</p>
+                              </div>
+                            </div>
+                            {/* ID DETALLE ELIMINADO */}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">
+                  Mostrando {detallesDonacion.length} {detallesDonacion.length === 1 ? 'detalle' : 'detalles'}
+                </div>
+                <button
+                  onClick={cerrarModal}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,258 +1,124 @@
-// app/Perfil/VerReportes/actions.js
+// app/Perfil/VerDonaciones/actions.js
 'use server'
 
-import { getReportes, getReporteById } from '@/app/lib/api/reporte';
-import { reporteService } from '@/app/lib/api/reporteService';
+import { getPerfilId } from "@/app/lib/api/perfil";
+import { getDonaciones } from "@/app/lib/api/donacionApi";
 
-// Obtener todos los reportes con información completa
-export async function obtenerReportesCompletos() {
+/**
+ * Obtiene las donaciones de un perfil específico por ID (tanto enviadas como recibidas)
+ */
+export async function obtenerDonacionesDePerfil(perfilId) {
   try {
-    console.log('🔄 Obteniendo reportes completos...');
-    
-    // Obtener reportes usando tu función existente
-    const reportes = await getReportes();
-    console.log('📊 Reportes obtenidos:', reportes.length);
+    console.log("🔍 Iniciando obtención de donaciones para perfil ID:", perfilId);
 
-    // Si no hay reportes, retornar array vacío
-    if (!reportes || reportes.length === 0) {
-      console.log('📭 No se encontraron reportes');
-      return { success: true, data: [] };
-    }
-
-    // Enriquecer cada reporte con información adicional
-    const reportesCompletos = await Promise.all(
-      reportes.map(async (reporte) => {
-        try {
-          console.log(`🔍 Enriqueciendo reporte ${reporte.id}...`);
-
-          // Obtener información de la publicación reportada
-          let publicacion = null;
-          if (reporte.publicacionIdPublicacion) {
-            console.log(`📝 Buscando publicación ${reporte.publicacionIdPublicacion} para reporte ${reporte.id}`);
-            try {
-              publicacion = await reporteService.getPublicacionById(reporte.publicacionIdPublicacion);
-              console.log(`✅ Publicación encontrada:`, publicacion?.titulo);
-            } catch (pubError) {
-              console.error(`❌ Error obteniendo publicación ${reporte.publicacionIdPublicacion}:`, pubError.message);
-            }
-          }
-
-          // Obtener información del perfil que reportó
-          let perfilReportador = null;
-          if (reporte.perfilIdPerfil) {
-            console.log(`👤 Buscando perfil reportador ${reporte.perfilIdPerfil} para reporte ${reporte.id}`);
-            try {
-              perfilReportador = await reporteService.getPerfilById(reporte.perfilIdPerfil);
-              console.log(`✅ Perfil reportador encontrado:`, perfilReportador?.razonSocial);
-            } catch (perfilError) {
-              console.error(`❌ Error obteniendo perfil reportador ${reporte.perfilIdPerfil}:`, perfilError.message);
-            }
-          }
-
-          // Obtener información del perfil reportado (dueño de la publicación)
-          let perfilReportado = null;
-          if (publicacion && publicacion.perfilIdPerfil) {
-            console.log(`👥 Buscando perfil reportado ${publicacion.perfilIdPerfil} para reporte ${reporte.id}`);
-            try {
-              perfilReportado = await reporteService.getPerfilById(publicacion.perfilIdPerfil);
-              console.log(`✅ Perfil reportado encontrado:`, perfilReportado?.razonSocial);
-            } catch (perfilError) {
-              console.error(`❌ Error obteniendo perfil reportado ${publicacion.perfilIdPerfil}:`, perfilError.message);
-            }
-          }
-
-          // Construir el reporte enriquecido
-          const reporteCompleto = {
-            id: reporte.id,
-            descripcion: reporte.descripcion || 'Sin descripción',
-            motivo: reporte.motivo || 'otros',
-            perfilIdPerfil: reporte.perfilIdPerfil,
-            publicacionIdPublicacion: reporte.publicacionIdPublicacion,
-            fechaCreacion: reporte.fechaCreacion || new Date().toISOString(),
-            publicacion: publicacion,
-            perfilReportador: perfilReportador,
-            perfilReportado: perfilReportado,
-            estado: reporte.estado || 'pendiente'
-          };
-
-          console.log(`✅ Reporte ${reporte.id} enriquecido correctamente`);
-          return reporteCompleto;
-
-        } catch (error) {
-          console.error(`💥 Error enriqueciendo reporte ${reporte.id}:`, error);
-          
-          // Retornar el reporte básico si hay error
-          return {
-            id: reporte.id,
-            descripcion: reporte.descripcion || 'Sin descripción',
-            motivo: reporte.motivo || 'otros',
-            perfilIdPerfil: reporte.perfilIdPerfil,
-            publicacionIdPublicacion: reporte.publicacionIdPublicacion,
-            fechaCreacion: reporte.fechaCreacion || new Date().toISOString(),
-            estado: reporte.estado || 'pendiente'
-          };
-        }
-      })
-    );
-
-    console.log('🎉 Reportes completos procesados:', reportesCompletos.length);
-    return { 
-      success: true, 
-      data: reportesCompletos,
-      message: `Se encontraron ${reportesCompletos.length} reportes`
-    };
-
-  } catch (error) {
-    console.error('💥 Error obteniendo reportes completos:', error);
-    return { 
-      success: false, 
-      error: error.message,
-      message: 'Error al cargar los reportes'
-    };
-  }
-}
-
-// Enviar advertencia a usuario
-export async function enviarAdvertenciaUsuario(perfilId, mensaje) {
-  try {
-    console.log(`📤 Enviando advertencia a perfil ${perfilId}...`);
-    
     if (!perfilId) {
-      throw new Error('ID de perfil no válido');
+      throw new Error('ID de perfil no proporcionado');
     }
 
-    if (!mensaje || mensaje.trim() === '') {
-      throw new Error('El mensaje de advertencia no puede estar vacío');
+    // Obtener el perfil usando el ID
+    const perfilData = await getPerfilId(perfilId);
+    console.log("✅ Perfil obtenido:", perfilData);
+
+    if (!perfilData) {
+      throw new Error('Perfil no encontrado');
     }
 
-    const resultado = await reporteService.enviarAdvertencia(perfilId, mensaje.trim());
-    
-    console.log('✅ Advertencia enviada exitosamente');
-    return { 
-      success: true, 
-      data: resultado,
-      message: 'Advertencia enviada correctamente'
-    };
+    const nombrePerfil = perfilData.razonSocial;
+    console.log("🔍 Buscando donaciones para:", nombrePerfil);
 
-  } catch (error) {
-    console.error('❌ Error enviando advertencia:', error);
-    return { 
-      success: false, 
-      error: error.message,
-      message: 'Error al enviar la advertencia'
-    };
-  }
-}
+    // Obtener TODAS las donaciones
+    const todasLasDonaciones = await getDonaciones();
+    console.log("📦 Total de donaciones obtenidas:", todasLasDonaciones.length);
 
-// Marcar reporte como resuelto
-export async function marcarReporteResuelto(reporteId) {
-  try {
-    console.log(`🔧 Marcando reporte ${reporteId} como resuelto...`);
-    
-    if (!reporteId) {
-      throw new Error('ID de reporte no válido');
-    }
-
-    // Aquí implementarías la lógica para marcar el reporte como resuelto en tu backend
-    // Por ahora, simulamos la operación
-    
-    console.log(`✅ Reporte ${reporteId} marcado como resuelto`);
-    return { 
-      success: true, 
-      message: 'Reporte marcado como resuelto correctamente'
-    };
-
-  } catch (error) {
-    console.error('❌ Error marcando reporte como resuelto:', error);
-    return { 
-      success: false, 
-      error: error.message,
-      message: 'Error al marcar el reporte como resuelto'
-    };
-  }
-}
-
-// Obtener estadísticas de reportes
-export async function obtenerEstadisticasReportes() {
-  try {
-    console.log('📈 Obteniendo estadísticas de reportes...');
-    
-    const resultado = await obtenerReportesCompletos();
-    
-    if (!resultado.success) {
-      throw new Error(resultado.error);
-    }
-
-    const reportes = resultado.data || [];
-    
-    // Calcular estadísticas
-    const totalReportes = reportes.length;
-    const reportesPendientes = reportes.filter(r => r.estado === 'pendiente').length;
-    const reportesResueltos = reportes.filter(r => r.estado === 'resuelto').length;
-    
-    // Estadísticas por motivo
-    const motivos = ['contenido_inapropiado', 'spam', 'informacion_falsa', 'acoso', 'otros'];
-    const estadisticasPorMotivo = motivos.map(motivo => {
-      const cantidad = reportes.filter(r => r.motivo === motivo).length;
-      return {
-        motivo,
-        cantidad
-      };
+    // Filtrar donaciones tanto ENVIADAS como RECIBIDAS por el perfil
+    const donacionesDelPerfil = todasLasDonaciones.filter(donacion => {
+      const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
+      const esDestinatario = donacion.nombrePerfilIdPerfil === nombrePerfil;
+      
+      if (esDonante) {
+        console.log("✅ Donación ENVIADA:", donacion.id, donacion.descripcion);
+      }
+      if (esDestinatario) {
+        console.log("✅ Donación RECIBIDA:", donacion.id, donacion.descripcion);
+      }
+      
+      return esDonante || esDestinatario;
     });
 
-    const estadisticas = {
-      total: totalReportes,
-      pendientes: reportesPendientes,
-      resueltos: reportesResueltos,
-      porMotivo: estadisticasPorMotivo
-    };
+    console.log(`✅ Total donaciones encontradas: ${donacionesDelPerfil.length}`);
 
-    console.log('✅ Estadísticas obtenidas:', estadisticas);
-    return { 
-      success: true, 
-      data: estadisticas,
-      message: 'Estadísticas calculadas correctamente'
+    return {
+      success: true,
+      data: formatearDonaciones(donacionesDelPerfil, nombrePerfil),
+      perfil: perfilData,
+      message: donacionesDelPerfil.length === 0 ? 
+        "No se encontraron donaciones para este perfil" : 
+        `Se encontraron ${donacionesDelPerfil.length} donaciones`
     };
 
   } catch (error) {
-    console.error('❌ Error obteniendo estadísticas:', error);
-    return { 
-      success: false, 
+    console.error('Error obteniendo donaciones del perfil:', error);
+    
+    return {
+      success: false,
+      data: [],
       error: error.message,
-      message: 'Error al obtener las estadísticas'
+      message: "Error al cargar las donaciones del perfil"
     };
   }
 }
 
-// Obtener reportes por motivo específico
-export async function obtenerReportesPorMotivo(motivo) {
+/**
+ * Formatea las donaciones para el frontend
+ */
+function formatearDonaciones(donaciones, nombrePerfil) {
+  return donaciones.map(donacion => {
+    const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
+    
+    return {
+      id: donacion.id,
+      fecha: formatearFecha(donacion.fechaHora),
+      monto: formatearMonto(donacion.monto),
+      destinatario: donacion.nombrePerfilIdPerfil || "Destinatario no especificado",
+      cbu: "No aplica para donaciones en especie",
+      calificacion: "No calificada",
+      descripcion: donacion.descripcion || `Donación de ${donacion.nombreDonacionTipoIdDonacionTipo}`,
+      estado: "Completada",
+      tipo: donacion.nombreDonacionTipoIdDonacionTipo || "Donación en especie",
+      donante: donacion.nombrePerfilDonanteIdPerfilDonante || nombrePerfil,
+      categoria: donacion.nombreDonacionTipoIdDonacionTipo,
+      fechaHora: donacion.fechaHora, // Mantener la fecha original para ordenamiento
+      // Campo adicional para identificar el tipo
+      esEnviada: esDonante
+    };
+  });
+}
+
+// Funciones auxiliares
+function formatearFecha(fecha) {
+  if (!fecha) return "Fecha no especificada";
+  
   try {
-    console.log(`🔍 Obteniendo reportes por motivo: ${motivo}...`);
-    
-    const resultado = await obtenerReportesCompletos();
-    
-    if (!resultado.success) {
-      throw new Error(resultado.error);
-    }
-
-    const todosLosReportes = resultado.data || [];
-    const reportesFiltrados = motivo === 'todos' 
-      ? todosLosReportes 
-      : todosLosReportes.filter(reporte => reporte.motivo === motivo);
-
-    console.log(`✅ Reportes filtrados por motivo ${motivo}:`, reportesFiltrados.length);
-    return { 
-      success: true, 
-      data: reportesFiltrados,
-      message: `Se encontraron ${reportesFiltrados.length} reportes con motivo "${motivo}"`
-    };
-
+    const fechaObj = new Date(fecha);
+    return fechaObj.toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   } catch (error) {
-    console.error('❌ Error obteniendo reportes por motivo:', error);
-    return { 
-      success: false, 
-      error: error.message,
-      message: 'Error al filtrar los reportes por motivo'
-    };
+    return "Fecha inválida";
   }
+}
+
+function formatearMonto(monto) {
+  if (!monto || monto === 0) {
+    return "No especificado";
+  }
+  
+  if (typeof monto === 'string' && monto.includes('$')) {
+    return monto;
+  }
+  
+  const numero = typeof monto === 'string' ? parseFloat(monto) : monto;
+  return `$${numero.toLocaleString('es-AR')}`;
 }

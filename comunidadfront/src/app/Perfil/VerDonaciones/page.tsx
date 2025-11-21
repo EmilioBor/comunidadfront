@@ -1,208 +1,316 @@
-// app/Perfil/VerReportes/page.tsx
+// app/Perfil/VerDonaciones/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/Inicio/components/Navbar";
-import { obtenerReportesCompletos, enviarAdvertenciaUsuario } from "./actions";
 
-interface Publicacion {
+// Importar la función del actions
+import { obtenerDonacionesDePerfil } from "./actions";
+
+interface Donacion {
   id: number;
-  titulo: string;
+  fecha: string;
+  monto: string;
+  destinatario: string;
+  cbu: string;
+  calificacion: string;
   descripcion: string;
-  imagen: string;
-  perfilIdPerfil: number;
-  nombrePerfilIdPerfil: string;
+  estado: string;
+  tipo: string;
+  donante: string;
+  categoria: string;
+  fechaHora?: string;
 }
 
-interface Perfil {
+interface DetalleDonacion {
   id: number;
+  descripcion: string;
+  nombreDonacionIdDonacion: string;
+  cantidad: number;
+  nombreDonacionEstadoIdDonacionEstado: string;
+}
+
+interface PerfilType {
+  id: number;
+  cuitCuil: number;
   razonSocial: string;
+  descripcion: string;
+  cbu: number;
+  alias: string;
+  usuarioIdUsuario: number;
+  localidadIdLocalidad: number;
   imagen: string;
 }
 
-interface Reporte {
-  id: number;
-  descripcion: string;
-  motivo: string;
-  perfilIdPerfil: number;
-  publicacionIdPublicacion: number;
-  publicacion?: Publicacion;
-  perfilReportador?: Perfil;
-  perfilReportado?: Perfil;
-  fechaCreacion?: string;
-  estado?: string;
-}
-
-// Tipos de motivos con colores
-const MOTIVOS_REPORTES = [
-  { id: "todos", nombre: "Todos los reportes", color: "bg-gray-100 text-gray-800" },
-  { id: "contenido_inapropiado", nombre: "Contenido Inapropiado", color: "bg-red-100 text-red-800" },
-  { id: "spam", nombre: "Spam", color: "bg-yellow-100 text-yellow-800" },
-  { id: "informacion_falsa", nombre: "Información Falsa", color: "bg-orange-100 text-orange-800" },
-  { id: "acoso", nombre: "Acoso", color: "bg-purple-100 text-purple-800" },
-  { id: "otros", nombre: "Otros", color: "bg-blue-100 text-blue-800" }
+// Definir los tipos de donaciones
+const TIPOS_DONACIONES = [
+  { id: "todos", nombre: "Todas las categorías", color: "bg-gray-100 text-gray-800" },
+  { id: "Dinero", nombre: "Dinero", color: "bg-green-100 text-green-800" },
+  { id: "Alimento", nombre: "Alimento", color: "bg-yellow-100 text-yellow-800" },
+  { id: "Ropa", nombre: "Ropa", color: "bg-blue-100 text-blue-800" },
+  { id: "Mueble", nombre: "Mueble", color: "bg-purple-100 text-purple-800" },
+  { id: "Otros", nombre: "Otros", color: "bg-orange-100 text-orange-800" }
 ];
 
-// Función para formatear fecha
-const formatearFecha = (fechaString?: string) => {
-  if (!fechaString) return "Fecha no disponible";
+// Funciones auxiliares
+const formatearFecha = (fecha: string) => {
+  if (!fecha) return "Fecha no especificada";
   
   try {
-    const fecha = new Date(fechaString);
-    const ahora = new Date();
-    const diffMs = ahora.getTime() - fecha.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Hace un momento";
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours} h`;
-    if (diffDays < 7) return `Hace ${diffDays} d`;
-    
-    return fecha.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+    const fechaObj = new Date(fecha);
+    return fechaObj.toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   } catch (error) {
-    return "Fecha no disponible";
+    return "Fecha inválida";
   }
 };
 
-export default function VerReportes() {
-  const [reportes, setReportes] = useState<Reporte[]>([]);
+const formatearMonto = (monto: any) => {
+  if (!monto || monto === 0) return "No especificado";
+  if (typeof monto === 'string' && monto.includes('$')) return monto;
+  const numero = typeof monto === 'string' ? parseFloat(monto) : monto;
+  return `$${numero.toLocaleString('es-AR')}`;
+};
+
+// Función para obtener TODOS los detalles de donación
+async function obtenerTodosLosDetallesDonacion(): Promise<DetalleDonacion[]> {
+  try {
+    const response = await fetch(`https://localhost:7168/api/DetalleDonacion/api/v1/detalleDonacions`);
+    
+    if (!response.ok) {
+      throw new Error(`Error al obtener detalles: ${response.status}`);
+    }
+    
+    const detalles = await response.json();
+    return Array.isArray(detalles) ? detalles : [];
+  } catch (error) {
+    console.error("Error obteniendo detalles de donación:", error);
+    return [];
+  }
+}
+
+// Función para filtrar detalles por descripción de donación
+function filtrarDetallesPorDescripcion(detalles: DetalleDonacion[], descripcionDonacion: string): DetalleDonacion[] {
+  return detalles.filter(detalle => 
+    detalle.nombreDonacionIdDonacion && descripcionDonacion &&
+    detalle.nombreDonacionIdDonacion.toLowerCase() === descripcionDonacion.toLowerCase()
+  );
+}
+
+export default function VerDonaciones() {
+  const [donaciones, setDonaciones] = useState<Donacion[]>([]);
+  const [perfil, setPerfil] = useState<PerfilType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [motivoFiltro, setMotivoFiltro] = useState("todos");
-  const [mostrarTodos, setMostrarTodos] = useState(false);
-  const [advertenciaModal, setAdvertenciaModal] = useState<{
-    mostrar: boolean;
-    perfilId: number | null;
-    razonSocial: string;
-  }>({
-    mostrar: false,
-    perfilId: null,
-    razonSocial: ""
-  });
-  const [mensajeAdvertencia, setMensajeAdvertencia] = useState("");
-  const [enviandoAdvertencia, setEnviandoAdvertencia] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [categoriaFiltro, setCategoriaFiltro] = useState("todos");
+  const [tipoVista, setTipoVista] = useState<"enviadas" | "recibidas">("enviadas");
+  
+  // Estados para el modal de detalles
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [donacionSeleccionada, setDonacionSeleccionada] = useState<Donacion | null>(null);
+  const [detallesDonacion, setDetallesDonacion] = useState<DetalleDonacion[]>([]);
+  const [cargandoDetalles, setCargandoDetalles] = useState(false);
+  const [errorDetalles, setErrorDetalles] = useState("");
+  const [todosLosDetalles, setTodosLosDetalles] = useState<DetalleDonacion[]>([]);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const perfilId = searchParams.get('perfilId');
 
+  // Cargar todos los detalles al montar el componente
   useEffect(() => {
-    cargarReportes();
+    async function cargarTodosLosDetalles() {
+      try {
+        const detalles = await obtenerTodosLosDetallesDonacion();
+        setTodosLosDetalles(detalles);
+      } catch (error) {
+        console.error("Error cargando todos los detalles:", error);
+      }
+    }
+
+    cargarTodosLosDetalles();
   }, []);
 
-  const cargarReportes = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const resultado = await obtenerReportesCompletos();
-      
-      if (resultado.success) {
-        setReportes(resultado.data || []);
-      } else {
-        setError(resultado.error || "Error al cargar reportes");
-      }
-    } catch (err) {
-      setError("Error inesperado al cargar reportes");
-      console.error(err);
-    } finally {
-      setLoading(false);
+  // Ordenar donaciones por fecha (más recientes primero)
+  const donacionesOrdenadas = [...donaciones].sort((a, b) => {
+    const fechaA = a.fechaHora ? new Date(a.fechaHora) : new Date(a.fecha);
+    const fechaB = b.fechaHora ? new Date(b.fechaHora) : new Date(b.fecha);
+    return fechaB.getTime() - fechaA.getTime();
+  });
+
+  // Filtrar donaciones según el tipo de vista seleccionado
+  const donacionesFiltradasPorTipo = donacionesOrdenadas.filter(donacion => {
+    if (tipoVista === "enviadas") {
+      // Donaciones enviadas - donde el perfil visitado es el donante
+      return donacion.donante === perfil?.razonSocial;
+    } else {
+      // Donaciones recibidas - donde el perfil visitado es el destinatario
+      return donacion.destinatario === perfil?.razonSocial;
     }
-  };
+  });
 
-  // Filtrar reportes por motivo
-  const reportesFiltrados = motivoFiltro === "todos" 
-    ? reportes 
-    : reportes.filter(reporte => reporte.motivo === motivoFiltro);
+  // Donaciones a mostrar (últimas 2 o todas según el estado)
+  const donacionesAMostrar = mostrarTodas 
+    ? donacionesFiltradasPorTipo 
+    : donacionesFiltradasPorTipo.slice(0, 2);
 
-  // Limitar a 4 reportes inicialmente
-  const reportesAMostrar = mostrarTodos 
-    ? reportesFiltrados 
-    : reportesFiltrados.slice(0, 4);
+  // Filtrar donaciones por categoría seleccionada
+  const donacionesFiltradas = categoriaFiltro === "todos" 
+    ? donacionesAMostrar 
+    : donacionesAMostrar.filter(donacion => 
+        donacion.tipo.toLowerCase() === categoriaFiltro.toLowerCase() ||
+        donacion.categoria.toLowerCase() === categoriaFiltro.toLowerCase()
+      );
 
-  // Estadísticas por motivo
-  const estadisticasPorMotivo = MOTIVOS_REPORTES.filter(motivo => motivo.id !== "todos").map(motivo => {
-    const cantidad = reportes.filter(reporte => reporte.motivo === motivo.id).length;
+  // Calcular estadísticas por categoría
+  const estadisticasPorCategoria = TIPOS_DONACIONES.filter(tipo => tipo.id !== "todos").map(tipo => {
+    const cantidad = donacionesFiltradasPorTipo.filter(donacion => 
+      donacion.tipo.toLowerCase() === tipo.id.toLowerCase() ||
+      donacion.categoria.toLowerCase() === tipo.id.toLowerCase()
+    ).length;
+    
     return {
-      ...motivo,
+      ...tipo,
       cantidad
     };
   });
 
-  const abrirModalAdvertencia = (perfilId: number, razonSocial: string) => {
-    setAdvertenciaModal({
-      mostrar: true,
-      perfilId,
-      razonSocial
-    });
-    setMensajeAdvertencia(`Hola ${razonSocial}, hemos revisado tu publicación y hemos detectado que viola nuestras normas comunitarias. Por favor, modifica el contenido para que cumpla con nuestras políticas.`);
+  // Total de categorías con al menos 1 donación
+  const categoriasConDonaciones = estadisticasPorCategoria.filter(tipo => tipo.cantidad > 0).length;
+
+  // Obtener la fecha de la última donación
+  const ultimaDonacion = donacionesFiltradasPorTipo.length > 0 ? donacionesFiltradasPorTipo[0] : null;
+  const fechaUltimaDonacion = ultimaDonacion 
+    ? formatearFecha(ultimaDonacion.fechaHora || ultimaDonacion.fecha)
+    : 'N/A';
+
+  const toggleMostrarTodas = () => {
+    setMostrarTodas(!mostrarTodas);
+    if (!mostrarTodas) {
+      setCategoriaFiltro("todos");
+    }
   };
 
-  const cerrarModalAdvertencia = () => {
-    setAdvertenciaModal({
-      mostrar: false,
-      perfilId: null,
-      razonSocial: ""
-    });
-    setMensajeAdvertencia("");
+  const cambiarTipoVista = (nuevoTipo: "enviadas" | "recibidas") => {
+    setTipoVista(nuevoTipo);
+    setMostrarTodas(false);
+    setCategoriaFiltro("todos");
   };
 
-  const enviarAdvertencia = async () => {
-    if (!advertenciaModal.perfilId || !mensajeAdvertencia.trim()) return;
+  // Función para abrir el modal con los detalles
+  const abrirModalDetalles = async (donacion: Donacion) => {
+    setDonacionSeleccionada(donacion);
+    setCargandoDetalles(true);
+    setErrorDetalles("");
+    setModalAbierto(true);
 
     try {
-      setEnviandoAdvertencia(true);
-      const resultado = await enviarAdvertenciaUsuario(
-        advertenciaModal.perfilId,
-        mensajeAdvertencia
-      );
-
-      if (resultado.success) {
-        alert("Advertencia enviada exitosamente");
-        cerrarModalAdvertencia();
-      } else {
-        alert("Error al enviar advertencia: " + resultado.error);
+      // Filtrar los detalles por la descripción de la donación
+      const detallesFiltrados = filtrarDetallesPorDescripcion(todosLosDetalles, donacion.descripcion);
+      setDetallesDonacion(detallesFiltrados);
+      
+      if (detallesFiltrados.length === 0) {
+        setErrorDetalles(`No se encontraron detalles específicos para esta donación`);
       }
     } catch (err) {
-      alert("Error inesperado al enviar advertencia");
-      console.error(err);
+      console.error("Error al cargar detalles:", err);
+      setErrorDetalles("No se pudieron cargar los detalles de la donación");
     } finally {
-      setEnviandoAdvertencia(false);
+      setCargandoDetalles(false);
     }
   };
 
-  const marcarComoResuelto = async (reporteId: number) => {
-    try {
-      // Actualizar estado local
-      setReportes(prev => 
-        prev.map(reporte => 
-          reporte.id === reporteId 
-            ? { ...reporte, estado: 'resuelto' }
-            : reporte
-        )
-      );
-      
-      alert("Reporte marcado como resuelto");
-    } catch (err) {
-      alert("Error al marcar el reporte como resuelto");
-      console.error(err);
+  // Función para cerrar el modal
+  const cerrarModal = () => {
+    setModalAbierto(false);
+    setDonacionSeleccionada(null);
+    setDetallesDonacion([]);
+    setErrorDetalles("");
+  };
+
+  // Función auxiliar para asegurar que tenemos un array de detalles
+  const obtenerArrayDetalles = (detalles: DetalleDonacion[] | DetalleDonacion): DetalleDonacion[] => {
+    if (Array.isArray(detalles)) {
+      return detalles;
+    } else if (detalles && typeof detalles === 'object') {
+      return [detalles];
+    } else {
+      return [];
     }
   };
+
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        if (!perfilId) {
+          setError("No se recibió ID de perfil");
+          setLoading(false);
+          return;
+        }
+
+        setLoading(true);
+        setError("");
+        setInfo("");
+
+        console.log("🔄 Cargando donaciones para perfil ID:", perfilId);
+
+        // Obtener donaciones del perfil específico
+        const resultado = await obtenerDonacionesDePerfil(parseInt(perfilId));
+        
+        if (resultado.success) {
+          setDonaciones(resultado.data);
+          setPerfil(resultado.perfil);
+          setInfo(resultado.message);
+        } else {
+          setError(resultado.message || "Error al cargar las donaciones");
+        }
+
+      } catch (err) {
+        console.error("Error cargando donaciones:", err);
+        setError(err.message || "Error al cargar los datos");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    cargarDatos();
+  }, [perfilId]);
 
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex w-full justify-center items-center h-64">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-4"></div>
+            <p className="text-lg text-gray-600">Cargando donaciones...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !perfil) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex w-full justify-center items-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-            <p className="text-lg text-gray-600">Cargando reportes...</p>
+            <div className="text-red-500 text-lg mb-4">⚠️ {error}</div>
+            <button
+              onClick={() => router.back()}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition"
+            >
+              Volver Atrás
+            </button>
           </div>
         </div>
       </div>
@@ -212,71 +320,145 @@ export default function VerReportes() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      
-      <div className="flex-1 p-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Reportes de la Comunidad</h1>
-                <p className="text-gray-600 mt-2">
-                  {reportesFiltrados.length} reporte(s) pendiente(s) de revisión
-                </p>
+      <div className="flex w-full">
+        {/* COLUMNA IZQUIERDA - Información del perfil visitado */}
+        <aside className="w-1/4 h-screen p-6 flex flex-col items-center bg-gray-100">
+          {perfil && (
+            <>
+              <div className="w-40 h-40 rounded-full overflow-hidden mb-4 border">
+                <Image
+                  src={`data:image/jpeg;base64,${perfil.imagen}`}
+                  alt="Foto de perfil"
+                  width={160}
+                  height={160}
+                  className="object-cover"
+                  unoptimized
+                />
               </div>
-              <div className="flex gap-3">
+
+              <p className="text-lg font-semibold text-black text-center">{perfil.razonSocial}</p>
+              <p className="text-sm text-gray-600 text-center mt-2">Historial de Donaciones</p>
+
+              <div className="mt-10 flex flex-col w-full gap-4">
                 <button
-                  onClick={cargarReportes}
-                  className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg text-gray-800 font-medium transition-colors"
+                  onClick={() => router.back()}
+                  className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition"
                 >
-                  Actualizar
+                  Volver Atrás
                 </button>
                 <Link
-                  href="/Perfil"
-                  className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                  href="/Inicio"
+                  className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition"
                 >
-                  Volver al Perfil
+                  Volver al Inicio
                 </Link>
+              </div>
+            </>
+          )}
+        </aside>
+
+        {/* COLUMNA CENTRAL - Listado de Donaciones del perfil visitado */}
+        <main className="w-3/4 p-8">
+          {/* HEADER */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Historial de Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"} de {perfil?.razonSocial}
+            </h1>
+            <p className="text-gray-600">
+              {tipoVista === "enviadas" 
+                ? "Donaciones que este usuario ha realizado" 
+                : "Donaciones que este usuario ha recibido"
+              }
+            </p>
+          </div>
+
+          {/* PANEL DE DOS BOTONES - ENVIADAS/RECIBIDAS */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div className="flex">
+                {/* BOTÓN DONACIONES ENVIADAS */}
+                <button
+                  onClick={() => cambiarTipoVista("enviadas")}
+                  className={`flex-1 py-4 px-6 text-center font-semibold transition-all duration-200 ${
+                    tipoVista === "enviadas" 
+                      ? "bg-gray-300 text-gray-800 shadow-inner" 
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Donaciones Enviadas
+                </button>
+                
+                {/* BOTÓN DONACIONES RECIBIDAS */}
+                <button
+                  onClick={() => cambiarTipoVista("recibidas")}
+                  className={`flex-1 py-4 px-6 text-center font-semibold transition-all duration-200 ${
+                    tipoVista === "recibidas" 
+                      ? "bg-gray-300 text-gray-800 shadow-inner" 
+                      : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Donaciones Recibidas
+                </button>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
-              <div className="flex justify-between items-center">
-                <span>{error}</span>
-                <button
-                  onClick={cargarReportes}
-                  className="text-red-800 hover:text-red-900 font-medium"
-                >
-                  Reintentar
-                </button>
-              </div>
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded-lg mb-6">
+              <strong>Aviso:</strong> {error}
             </div>
           )}
 
-          {/* Estadísticas por Motivo */}
+          {info && (
+            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg mb-6">
+              {info}
+            </div>
+          )}
+
+          {/* ESTADÍSTICAS RESUMEN */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                Total Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}
+              </h3>
+              <p className="text-2xl font-bold text-green-600">{donacionesFiltradasPorTipo.length}</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Categorías Utilizadas</h3>
+              <p className="text-2xl font-bold text-blue-600">{categoriasConDonaciones}</p>
+              <p className="text-sm text-gray-500 mt-1">de 5 categorías</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Última Donación</h3>
+              <p className="text-lg font-semibold text-gray-800">
+                {fechaUltimaDonacion}
+              </p>
+            </div>
+          </div>
+
+          {/* ESTADÍSTICAS POR CATEGORÍA */}
           <section className="bg-white rounded-xl shadow-sm border mb-8">
             <div className="p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-800">Reportes por Motivo</h2>
+              <h2 className="text-xl font-bold text-gray-800">
+                Donaciones {tipoVista === "enviadas" ? "Enviadas" : "Recibidas"} por Categoría
+              </h2>
             </div>
             
             <div className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {estadisticasPorMotivo.map((motivo) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {estadisticasPorCategoria.map((tipo) => (
                   <div 
-                    key={motivo.id} 
+                    key={tipo.id} 
                     className={`p-4 rounded-lg border-2 text-center transition-all duration-200 ${
-                      motivo.cantidad > 0 
-                        ? `${motivo.color} border-current shadow-md cursor-pointer hover:scale-105` 
+                      tipo.cantidad > 0 
+                        ? `${tipo.color} border-current shadow-md` 
                         : 'bg-gray-50 text-gray-400 border-gray-200'
                     }`}
-                    onClick={() => motivo.cantidad > 0 && setMotivoFiltro(motivo.id)}
                   >
-                    <div className="text-2xl font-bold mb-1">{motivo.cantidad}</div>
-                    <div className="text-sm font-medium">{motivo.nombre}</div>
-                    {motivo.cantidad === 0 && (
-                      <div className="text-xs mt-1">Sin reportes</div>
+                    <div className="text-2xl font-bold mb-1">{tipo.cantidad}</div>
+                    <div className="text-sm font-medium">{tipo.nombre}</div>
+                    {tipo.cantidad === 0 && (
+                      <div className="text-xs mt-1">Sin donaciones</div>
                     )}
                   </div>
                 ))}
@@ -284,223 +466,287 @@ export default function VerReportes() {
             </div>
           </section>
 
-          {/* Filtros y Controles */}
-          <div className="bg-white rounded-xl shadow-sm border mb-6">
-            <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <select
-                  value={motivoFiltro}
-                  onChange={(e) => setMotivoFiltro(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800"
-                >
-                  {MOTIVOS_REPORTES.map(motivo => (
-                    <option key={motivo.id} value={motivo.id}>
-                      {motivo.nombre} {motivo.id !== "todos" && `(${
-                        reportes.filter(r => r.motivo === motivo.id).length
-                      })`}
-                    </option>
-                  ))}
-                </select>
-                
-                {motivoFiltro !== "todos" && (
-                  <button
-                    onClick={() => setMotivoFiltro("todos")}
-                    className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                  >
-                    Limpiar filtro
-                  </button>
-                )}
-              </div>
-
-              {reportesFiltrados.length > 4 && (
-                <button
-                  onClick={() => setMostrarTodos(!mostrarTodos)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  {mostrarTodos ? "Ver menos" : `Ver todos (${reportesFiltrados.length})`}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Grid de Reportes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {reportesAMostrar.length === 0 ? (
-              <div className="col-span-2 bg-white rounded-xl shadow-sm p-8 text-center">
-                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  {motivoFiltro === "todos" ? 'No hay reportes pendientes' : 'No hay reportes con este motivo'}
-                </h3>
-                <p className="text-gray-500">
-                  {motivoFiltro === "todos" 
-                    ? "Todos los reportes han sido revisados y resueltos."
-                    : `No se encontraron reportes con el motivo "${MOTIVOS_REPORTES.find(m => m.id === motivoFiltro)?.nombre}".`
+          {/* LISTADO DE DONACIONES */}
+          <section className="bg-white rounded-xl shadow-sm border">
+            <div className="p-6 border-b flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  {mostrarTodas 
+                    ? `Todas las Donaciones ${tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}` 
+                    : `Últimas Donaciones ${tipoVista === "enviadas" ? "Enviadas" : "Recibidas"}`
+                  }
+                </h2>
+                <p className="text-gray-600 text-sm mt-1">
+                  {mostrarTodas 
+                    ? `Mostrando ${donacionesFiltradas.length} de ${donacionesFiltradasPorTipo.length} donaciones` 
+                    : `Donaciones ${tipoVista === "enviadas" ? "realizadas" : "recibidas"} más recientes`
                   }
                 </p>
               </div>
-            ) : (
-              reportesAMostrar.map((reporte) => (
-                <div key={reporte.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                  {/* Header del Reporte */}
-                  <div className="p-4 border-b border-gray-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                          MOTIVOS_REPORTES.find(m => m.id === reporte.motivo)?.color || 
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {reporte.motivo || "Sin motivo"}
-                        </span>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatearFecha(reporte.fechaCreacion)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-700 text-sm line-clamp-2">
-                      {reporte.descripcion || "Sin descripción adicional"}
-                    </p>
-                  </div>
 
-                  {/* Información del Reportador */}
-                  <div className="p-4 border-b border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Reportado por:</h4>
-                    {reporte.perfilReportador ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                          {reporte.perfilReportador.imagen ? (
-                            <img
-                              src={`data:image/jpeg;base64,${reporte.perfilReportador.imagen}`}
-                              alt={reporte.perfilReportador.razonSocial}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-xs font-medium">
-                              {reporte.perfilReportador.razonSocial.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {reporte.perfilReportador.razonSocial}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-sm">Información no disponible</p>
-                    )}
-                  </div>
-
-                  {/* Publicación Reportada */}
-                  <div className="p-4 border-b border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Publicación:</h4>
-                    {reporte.publicacion ? (
-                      <div className="flex gap-3">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={`data:image/jpeg;base64,${reporte.publicacion.imagen}`}
-                            alt={reporte.publicacion.titulo}
-                            className="w-12 h-12 object-cover rounded-lg"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {reporte.publicacion.titulo}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {reporte.publicacion.descripcion}
-                          </p>
-                          {reporte.perfilReportado && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              Por: {reporte.perfilReportado.razonSocial}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-sm">Publicación no disponible</p>
-                    )}
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="p-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          if (reporte.perfilReportado) {
-                            abrirModalAdvertencia(
-                              reporte.perfilReportado.id,
-                              reporte.perfilReportado.razonSocial
-                            );
-                          }
-                        }}
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!reporte.perfilReportado}
-                      >
-                        Advertir
-                      </button>
-                      
-                      <button 
-                        onClick={() => marcarComoResuelto(reporte.id)}
-                        className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors"
-                      >
-                        Resolver
-                      </button>
-                    </div>
-                  </div>
+              {/* Filtro por categoría (solo cuando se muestran todas) */}
+              {mostrarTodas && (
+                <div className="flex items-center gap-4">
+                  <select
+                    value={categoriaFiltro}
+                    onChange={(e) => setCategoriaFiltro(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800"
+                  >
+                    {TIPOS_DONACIONES.map(tipo => (
+                      <option key={tipo.id} value={tipo.id}>
+                        {tipo.nombre} {tipo.id !== "todos" && `(${
+                          donacionesFiltradasPorTipo.filter(d => 
+                            d.tipo.toLowerCase() === tipo.id.toLowerCase() || 
+                            d.categoria.toLowerCase() === tipo.id.toLowerCase()
+                          ).length
+                        })`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))
+              )}
+            </div>
+
+            {donacionesFiltradas.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="text-gray-400 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  {categoriaFiltro === "todos" 
+                    ? `No hay donaciones ${tipoVista === "enviadas" ? "enviadas" : "recibidas"} registradas` 
+                    : 'No hay donaciones en esta categoría'
+                  }
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {categoriaFiltro === "todos" 
+                    ? (info || `Este usuario todavía no ha ${tipoVista === "enviadas" ? "realizado" : "recibido"} ninguna donación.`)
+                    : `No se encontraron donaciones en la categoría "${TIPOS_DONACIONES.find(t => t.id === categoriaFiltro)?.nombre}"`
+                  }
+                </p>
+                {categoriaFiltro !== "todos" && (
+                  <button
+                    onClick={() => setCategoriaFiltro("todos")}
+                    className="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition mr-2"
+                  >
+                    Ver Todas las Categorías
+                  </button>
+                )}
+                <button
+                  onClick={() => router.back()}
+                  className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition"
+                >
+                  Volver Atrás
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="divide-y">
+                  {donacionesFiltradas.map((donacion) => (
+                    <div key={donacion.id} className="p-6 hover:bg-gray-50 transition">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {tipoVista === "enviadas" 
+                              ? `Donación a ${donacion.destinatario}`
+                              : `Donación de ${donacion.donante}`
+                            }
+                          </h3>
+                          <p className="text-gray-600 text-sm">{donacion.fecha}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-green-600">{donacion.monto}</p>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                            TIPOS_DONACIONES.find(t => t.id.toLowerCase() === donacion.tipo.toLowerCase())?.color || 
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {donacion.tipo}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                        <div>
+                          <p><strong>Descripción:</strong> {donacion.descripcion}</p>
+                          <p><strong>Tipo:</strong> {donacion.tipo}</p>
+                        </div>
+                        <div>
+                          <p><strong>Categoría:</strong> {donacion.categoria}</p>
+                          {tipoVista === "enviadas" ? (
+                            <p><strong>Destinatario:</strong> {donacion.destinatario}</p>
+                          ) : (
+                            <p><strong>Donante:</strong> {donacion.donante}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button 
+                          onClick={() => abrirModalDetalles(donacion)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-sm transition"
+                        >
+                          Ver detalles →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Botón Ver Más / Ver Menos */}
+                {donacionesFiltradasPorTipo.length > 2 && (
+                  <div className="p-6 border-t text-center">
+                    <button
+                      onClick={toggleMostrarTodas}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105"
+                    >
+                      {mostrarTodas ? (
+                        <>
+                          <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                          Ver Menos Donaciones
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          Ver Más Donaciones ({donacionesFiltradasPorTipo.length - 2} más)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
 
-      {/* Modal de Advertencia */}
-      {advertenciaModal.mostrar && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Enviar Advertencia a {advertenciaModal.razonSocial}
-            </h3>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mensaje de advertencia:
-              </label>
-              <textarea
-                value={mensajeAdvertencia}
-                onChange={(e) => setMensajeAdvertencia(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                rows={4}
-                placeholder="Escribe el mensaje de advertencia..."
-              />
+      {/* MODAL DE DETALLES */}
+      {modalAbierto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b bg-gray-50 rounded-t-xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Detalles de la Donación
+                </h2>
+                <button
+                  onClick={cerrarModal}
+                  className="text-gray-500 hover:text-gray-700 transition"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={cerrarModalAdvertencia}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-                disabled={enviandoAdvertencia}
-              >
-                Cancelar
-              </button>
-              
-              <button
-                onClick={enviarAdvertencia}
-                disabled={enviandoAdvertencia || !mensajeAdvertencia.trim()}
-                className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {enviandoAdvertencia ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Enviando...
-                  </>
-                ) : (
-                  "Enviar Advertencia"
-                )}
-              </button>
+
+            <div className="p-6">
+              {cargandoDetalles ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Cargando detalles...</span>
+                </div>
+              ) : errorDetalles ? (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {errorDetalles}
+                </div>
+              ) : (
+                <>
+                  {donacionSeleccionada && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Información General</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                        <div>
+                          <p><strong>Fecha:</strong> {donacionSeleccionada.fecha}</p>
+                          <p><strong>Monto/Valor:</strong> {donacionSeleccionada.monto}</p>
+                          <p><strong>Tipo:</strong> {donacionSeleccionada.tipo}</p>
+                        </div>
+                        <div>
+                          <p><strong>Categoría:</strong> {donacionSeleccionada.categoria}</p>
+                          {tipoVista === "enviadas" ? (
+                            <p><strong>Destinatario:</strong> {donacionSeleccionada.destinatario}</p>
+                          ) : (
+                            <p><strong>Donante:</strong> {donacionSeleccionada.donante}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 text-gray-700">
+                        <p><strong>Descripción:</strong> {donacionSeleccionada.descripcion}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">Detalles Específicos</h3>
+                      <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                        {detallesDonacion.length} {detallesDonacion.length === 1 ? 'detalle' : 'detalles'}
+                      </span>
+                    </div>
+                    
+                    {detallesDonacion.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <svg className="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p>No hay detalles adicionales para esta donación</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {obtenerArrayDetalles(detallesDonacion).map((detalle, index) => (
+                          <div key={detalle.id || index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div className="flex justify-between items-start mb-3">
+                              <h4 className="font-semibold text-gray-700">
+                                Item #{index + 1}
+                              </h4>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                detalle.nombreDonacionEstadoIdDonacionEstado === 'Completada' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : detalle.nombreDonacionEstadoIdDonacionEstado === 'Pendiente'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : detalle.nombreDonacionEstadoIdDonacionEstado === 'Cancelada'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {detalle.nombreDonacionEstadoIdDonacionEstado}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                              <div>
+                                <p><strong>Descripción del item:</strong></p>
+                                <p className="mt-1">{detalle.descripcion}</p>
+                              </div>
+                              <div>
+                                <p><strong>Cantidad:</strong></p>
+                                <p className="mt-1 text-lg font-semibold">{detalle.cantidad} unidades</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 rounded-b-xl">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-500">
+                  Mostrando {detallesDonacion.length} {detallesDonacion.length === 1 ? 'detalle' : 'detalles'}
+                </div>
+                <button
+                  onClick={cerrarModal}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>
