@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 
 export default function ChatInput({ onSend }: any) {
@@ -12,17 +11,19 @@ export default function ChatInput({ onSend }: any) {
   };
 
   return (
-    <div className="p-4 border-t bg-white flex gap-2">
+    <div className="bg-[#47C7C1] px-4 py-3 flex items-center gap-3">
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="flex-1 bg-gray-100 p-3 rounded-full outline-none"
-        placeholder="Escribe un mensaje..."
+        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        className="flex-1 px-4 py-2 rounded-full bg-white text-black text-sm outline-none"
+        placeholder="Escribe tu mensaje..."
       />
-
       <button
         onClick={handleSend}
-        className="bg-blue-500 text-white px-5 py-2 rounded-full hover:bg-blue-600"
+        className="bg-[#0B95FF] text-white px-6 py-2 rounded-full text-sm
+                  hover:bg-blue-600 disabled:opacity-50"
+        disabled={!text.trim()}
       >
         Enviar
       </button>

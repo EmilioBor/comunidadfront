@@ -2,54 +2,94 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import { GetUserByPerfil } from "@/app/lib/api/perfil";
 
-// Estructura de un mensaje de chat
 export interface ChatMessage {
   id: number;
   contenido: string;
   fechaHora: string;
-  nombreChatIdChat: string;      // Nombre del chat
-  nombrePerfilIdPerfil: string;  // Autor del mensaje
-  soyYo?: boolean;               // Si es del usuario logueado
+  perfilNombre: string;
+  soyYo: boolean;
 }
 
-// Props que recibe el hook
+interface PerfilType {
+  id: number;
+  cuitCuil: number;
+  razonSocial: string;
+  descripcion: string;
+  cbu: number;
+  alias: string;
+  usuarioIdUsuario: number;
+  localidadIdLocalidad: number;
+  imagen: string;
+}
+
+interface ChatInfo {
+  id: number;
+  nombrePerfilidPerfil: string; // emisor
+  nombreReceptorIdReceptor: string; // receptor
+}
+
 interface UseChatOptions {
-  id: number;               
-  nombrePerfilIdPerfil: string | null; 
+  id: number;
+  perfilNombre: string; // usuario logueado
+  enabled?: boolean;
 }
 
-export function useChat({ id, nombrePerfilIdPerfil }: UseChatOptions) {
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+export function useChat({ id, perfilNombre, enabled = true }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [perfil, setPerfil] = useState<PerfilType | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
 
-  // -----------------------------
-  // 1️⃣ Cargar historial de mensajes desde la API
-  // -----------------------------
+  // 1️⃣ Cargar info del chat
   useEffect(() => {
-    if (!id || !nombrePerfilIdPerfil) return;
+    if (!enabled) return;
+
+    const loadChatInfo = async () => {
+      try {
+        
+
+
+
+        const res = await fetch(`https://localhost:7168/api/Chat/api/v1/chat/id/${id}`);
+        if (!res.ok) throw new Error("No se pudo obtener la info del chat");
+        const data: ChatInfo = await res.json();
+        setChatInfo(data);
+      } catch (err) {
+        console.error("Error cargando info del chat:", err);
+      }
+    };
+
+    loadChatInfo();
+  }, [id, enabled]);
+
+  // 2️⃣ Cargar historial de mensajes
+  useEffect(() => {
+    if (!enabled || !chatInfo) return;
 
     const loadMessages = async () => {
       try {
-        const res = await fetch(
-          `https://localhost:7168/api/Mensaje/api/v1/mensajes/chat/${id}`
+        const res = await fetch(`https://localhost:7168/api/Mensaje/api/v1/mensajes/chat/${id}`);
+        if (!res.ok) throw new Error("No se pudo cargar mensajes");
+        let data = await res.json();
+
+        data = data.sort(
+          (a: any, b: any) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime()
         );
-        if (!res.ok) throw new Error("Error al cargar mensajes");
 
-        const data = await res.json();
-
-        const mapped: ChatMessage[] = data.map((m: any) => ({
-          id: m.id,
-          contenido: m.contenido,
-          fechaHora: m.fechaHora,
-          nombreChatIdChat: m.nombreChatIdChat,
-          nombrePerfilIdPerfil: m.nombrePerfilIdPerfil,
-          soyYo: m.nombrePerfilIdPerfil === nombrePerfilIdPerfil,
-        }));
-
-        setMessages(mapped);
+        setMessages(
+          data.map((m: any) => ({
+            id: m.id,
+            contenido: m.contenido,
+            fechaHora: m.fechaHora,
+            perfilNombre: m.nombrePerfilIdPerfil,
+            soyYo: m.nombrePerfilIdPerfil === perfilNombre,
+          }))
+        );
       } catch (err) {
         console.error("Error cargando mensajes:", err);
       } finally {
@@ -58,123 +98,100 @@ export function useChat({ id, nombrePerfilIdPerfil }: UseChatOptions) {
     };
 
     loadMessages();
-  }, [id, nombrePerfilIdPerfil]);
+  }, [id, enabled, chatInfo, perfilNombre]);
 
-  // -----------------------------
-  // 2️⃣ Conexión a SignalR
-  // -----------------------------
+  // 3️⃣ Conexión SignalR
   useEffect(() => {
-    if (!id || !nombrePerfilIdPerfil) return;
+    if (!enabled) return;
 
-    let conn: signalR.HubConnection | null = null;
+    const conn = new signalR.HubConnectionBuilder()
+      .withUrl(`https://localhost:7168/chatHub?chatId=${id}`)
+      .withAutomaticReconnect()
+      .build();
 
-    const connectSignalR = async () => {
-      conn = new signalR.HubConnectionBuilder()
-        .withUrl(`https://localhost:7168/chatHub?chatId=${id}`)
-        .withAutomaticReconnect()
-        .build();
+    conn.start()
+      .then(() => console.log("Conectado al Hub", id))
+      .catch(err => console.error("Error conectando al Hub:", err));
 
-      try {
-        await conn.start();
-        console.log("Conectado al chat", id);
+    conn.on("ReceiveMessage", (autorNombre: string, contenido: string) => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          contenido,
+          fechaHora: new Date().toISOString(),
+          perfilNombre: autorNombre,
+          soyYo: autorNombre === perfilNombre,
+        },
+      ]);
+    });
 
-        conn.on("ReceiveMessage", (nombreAutor: string, contenido: string) => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              contenido,
-              fechaHora: new Date().toISOString(),
-              nombreChatIdChat: "",
-              nombrePerfilIdPerfil: nombreAutor,
-              soyYo: nombreAutor === nombrePerfilIdPerfil,
-            },
-          ]);
-        });
-
-        setConnection(conn);
-      } catch (err) {
-        console.error("Error en SignalR:", err);
-      }
-    };
-
-    connectSignalR();
+    setConnection(conn);
 
     return () => {
-      if (conn) {
-        conn.stop().catch((err) => console.error("Error stopping SignalR:", err));
-      } else if (connection) {
-        connection.stop().catch((err) => console.error("Error stopping SignalR:", err));
-      }
+      conn.off("ReceiveMessage");
+      conn.stop();
     };
-  }, [id, nombrePerfilIdPerfil]);
+  }, [id, enabled, perfilNombre]);
 
-  // -----------------------------
-  // 3️⃣ Autoscroll al último mensaje
-  // -----------------------------
+  // 4️⃣ Autoscroll
   useEffect(() => {
+    if (!enabled) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, enabled]);
 
-  // -----------------------------
-  // 4️⃣ Función para enviar mensaje
-  // -----------------------------
-  const sendMessage = async (texto: string) => {
-    if (!texto.trim() || !nombrePerfilIdPerfil) return;
+  // 5️⃣ Enviar mensaje
+const sendMessage = async (texto: string) => {
+  if (!enabled || !texto.trim()) return;
 
-    const mensajeLocal: ChatMessage = {
-      id: Date.now(),
+  if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+    console.error("No hay conexión activa al Hub");
+    return;
+  }
+
+  try {
+
+     const me = await fetch("/api/user/me").then((r) => r.json());
+        console.log("📊 Datos del usuario logueado:", me);
+
+        
+        // Guardar el ID del usuario logueado - ESTE ES EL ID CORRECTO
+        setUserId(me.id);
+        console.log("🔑 ID del usuario logueado:", me.id);
+        
+        const perfilData = await GetUserByPerfil(me.id);
+        console.log("📄 Datos del perfil:", perfilData);
+
+        setPerfil(perfilData);
+
+
+
+    const body = {
       contenido: texto,
       fechaHora: new Date().toISOString(),
-      nombreChatIdChat: "",
-      nombrePerfilIdPerfil: nombrePerfilIdPerfil,
-      soyYo: true,
+      chatIdChat: id,           // ✅ chatId correcto
+      perfilIdPerfil: perfilData?.id, // ✅ ID del perfil logueado (no el nombre)
     };
-    setMessages((prev) => [...prev, mensajeLocal]);
+    console.log("Enviando mensaje con body:", body);
+    // Guardar en DB
+    const res = await fetch("https://localhost:7168/api/Mensaje/api/v1/agrega/mensaje", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-    try {
-      const body = {
-        id: 0,
-        contenido: texto,
-        fechaHora: new Date().toISOString(),
-        chatIdChat: id,
-        perfilIdPerfil: 0,
-      };
+    if (!res.ok) throw new Error("Error guardando mensaje en la DB");
 
-      const res = await fetch(
-        "https://localhost:7168/api/Mensaje/api/v1/agrega/mensaje",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      );
-
-      if (!res.ok) throw new Error("Error enviando mensaje");
-
-      const saved = await res.json();
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === mensajeLocal.id
-            ? { ...m, id: saved.id, fechaHora: saved.fechaHora }
-            : m
-        )
-      );
-
-      await connection?.invoke("SendMessage", nombrePerfilIdPerfil, texto);
-    } catch (err) {
-      console.error("Error sendMessage:", err);
+    if (!perfil?.id) {
+      console.error("No se puede enviar mensaje: perfil.id no definido");
+      return;
     }
-  };
+    await connection.invoke("SendMessage", id, perfilData.id, texto);
+  } catch (err) {
+    console.error("Error al enviar mensaje:", err);
+  }
+};
 
-  // -----------------------------
-  // 5️⃣ Retorno del hook
-  // -----------------------------
-  return {
-    messages,
-    sendMessage,
-    loadingMessages,
-    bottomRef,
-  };
+
+  return { messages, sendMessage, loadingMessages, bottomRef };
 }

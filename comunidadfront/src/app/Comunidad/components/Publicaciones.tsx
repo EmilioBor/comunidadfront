@@ -114,8 +114,6 @@ export default function Perfil() {
     return `/Donacion/Crear?${params.toString()}`;
   };
 
-
-
     // 🔹 Crear chat y redirigir
     const handleChatClick = async (pub: Publicacion) => {
       try {
@@ -135,13 +133,7 @@ export default function Perfil() {
                   return;
                 }
                 setPerfil(perfilData);
-        // const resUser = await fetch("/api/user/me").then((r) => r.json());
-        // console.log("📊 Datos del usuario logueado:", resUser);
-        // if (!resUser.ok) {
-        //   console.error("No se pudo obtener el usuario");
-        //   return;
-        // }
-        // const user = await resUser.json();
+
 
         const perfilIdActual = perfilData.id; // ajustá al nombre real
         const receptorId = pub.perfil?.id; // perfil dueño de la publicación

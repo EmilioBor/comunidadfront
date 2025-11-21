@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export default function ChatSidebar({ chats, selectedChatId }: any) {
   return (
-    <aside className="w-64 bg-gray-100 border-r border-gray-300 h-screen p-4 overflow-y-auto hidden md:block">
-      <h2 className="text-lg font-semibold mb-4">Chats</h2>
+    <aside className="w-72 bg-[#E2F0D9] p-4 hidden md:flex flex-col">
+      <h2 className="text-2xl font-bold mb-4 text-black">Lista de Chats</h2>
 
       {chats.map((chat: any) => (
-        <Link key={chat.id} href={`/chat/${chat.id}`}>
+        <Link key={chat.id} href={`/Chat/${chat.id}`}>
           <div
             className={`p-3 rounded-lg mb-2 cursor-pointer ${
               selectedChatId === chat.id ? "bg-blue-200" : "bg-white"

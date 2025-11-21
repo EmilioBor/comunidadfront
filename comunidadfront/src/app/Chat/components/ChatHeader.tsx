@@ -3,12 +3,11 @@ import { ArrowLeft } from "lucide-react";
 
 export default function ChatHeader({ title }: { title: string }) {
   return (
-    <header className="w-full bg-white border-b border-gray-300 p-4 flex items-center gap-3">
-      <Link href="/chat">
-        <ArrowLeft className="text-gray-700 cursor-pointer" />
+    <header className="bg-[#47C7C1] rounded-t-3xl text-white px-6 py-4 flex items-center gap-3 shadow">
+      <Link href="/Chat">
+        <ArrowLeft className="text-white cursor-pointer" />
       </Link>
-
-      <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+      <h1 className="font-semibold text-lg">{title}</h1>
     </header>
   );
 }
