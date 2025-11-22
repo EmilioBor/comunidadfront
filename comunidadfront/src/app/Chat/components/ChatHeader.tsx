@@ -8,6 +8,8 @@ export default function ChatHeader({ title }: { title: string }) {
         <ArrowLeft className="text-white cursor-pointer" />
       </Link>
       <h1 className="font-semibold text-lg">{title}</h1>
+      <p>Nombre</p>
+      <p>Imagen</p>
     </header>
   );
 }

@@ -32,6 +32,31 @@ export async function getPublicacionPerfil(data) {
   }
 }
 
+
+    //obtener perfil por nombre
+        export async function getPublicacionNombre(data) {
+        try {
+            const encoded = encodeURIComponent(data); 
+            const url = `https://localhost:7168/api/Publicacion/api/v1/publicacion/titulo/${encoded}`;
+            console.log("GET:", url);
+
+            const response = await axios.get(url);
+
+            return response.data;
+
+        } catch (error) {
+            console.error("Error en GetUserByPerfil:", error);
+
+            // Si el backend devuelve 404 → el usuario no tiene perfil aún
+            if (error.response?.status === 404) {
+            return null;  // manejalo en el front
+            }
+
+            throw error;
+        }
+    }
+
+
 export async function getPublicacionTipo() {
   try {
     const res = await axios.get(

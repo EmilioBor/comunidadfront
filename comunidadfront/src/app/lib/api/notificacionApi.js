@@ -71,3 +71,17 @@ export const notificacionService = {
     }
   }
 };
+
+export async function postNotificacion(data) {
+  try {
+    const response = await axios.post(`https://localhost:7168/api/Notificacion/api/v1/agrega/notificacion`, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al crear notificación:', error);
+    throw error;
+  } 
+}

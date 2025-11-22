@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { obternerChatByPerfil } from "../[chatId]/actions";
 
 export default function ChatSidebar({ chats, selectedChatId }: any) {
+
+
   return (
     <aside className="w-72 bg-[#E2F0D9] p-4 hidden md:flex flex-col">
       <h2 className="text-2xl font-bold mb-4 text-black">Lista de Chats</h2>

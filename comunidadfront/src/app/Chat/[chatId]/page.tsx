@@ -64,15 +64,22 @@ export default function ChatPage() {
         <ChatHeader title="Chat" />
 
         {/* Mensajes */}
-        <section className="flex-1 min-h-0 bg-[#6BD5D0]/80 rounded-b-3xl shadow flex flex-col">
-          <ChatMessages
-            messages={chat.messages}
-            bottomRef={chat.bottomRef}
-          />
+      <section className="flex-1 min-h-0 relative rounded-b-3xl shadow flex flex-col">
+        
+        {/* Fondo */}
+        <div className="absolute inset-0 bg-[url('/background-login.png')] bg-cover bg-center bg-no-repeat opacity-30"></div>
 
-          {/* Input de mensaje */}
+        {/* Overlay celeste transparente */}
+        <div className="absolute inset-0 bg-cyan-400/30"></div>
+
+        {/* Contenido del chat */}
+        <div className="relative flex-1 flex flex-col">
+          <ChatMessages messages={chat.messages} bottomRef={chat.bottomRef} />
           <ChatInput onSend={chat.sendMessage} />
-        </section>
+        </div>
+
+      </section>
+
       </main>
     </div>
   );
