@@ -130,7 +130,10 @@ export default function DetalleNovedadCliente() {
             {/* DERECHA: Foto + Nombre */}
 {perfil && (
   <div className="flex justify-end">
-    <div className="flex flex-col items-center gap-2">
+    <Link
+      href={`/Perfil/VerPerfil?id=${perfil.id}`}
+      className="flex flex-col items-center gap-2 hover:opacity-80 transition"
+    >
       <img
         src={`data:image/jpeg;base64,${perfil.imagen}`}
         alt="Perfil"
@@ -139,7 +142,7 @@ export default function DetalleNovedadCliente() {
       <span className="text-sm md:text-base font-medium text-gray-700 text-center">
         {perfil.razonSocial}
       </span>
-    </div>
+    </Link>
   </div>
 )}
           </div>
