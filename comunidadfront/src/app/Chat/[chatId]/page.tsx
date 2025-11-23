@@ -83,14 +83,17 @@ export default function ChatPage() {
       <main className="flex-1 flex flex-col p-6 overflow-hidden">
         <ChatHeader title="Chat" chats={chats} perfil={perfil} chatId={chatId} />
 
-        <section className="flex-1 min-h-0 relative rounded-b-3xl shadow flex flex-col">
+        <section className="relative flex-1 flex flex-col min-h-0">
           <div className="absolute inset-0 bg-[url('/background-login.png')] bg-cover bg-center bg-no-repeat opacity-30"></div>
           <div className="absolute inset-0 bg-cyan-400/30"></div>
-          <div className="relative flex-1 flex flex-col">
+
+          {/* 🔥 ESTE ES EL CRÍTICO */}
+          <div className="relative flex-1 flex flex-col min-h-0">
             <ChatMessages messages={chat.messages} bottomRef={chat.bottomRef} />
             <ChatInput onSend={chat.sendMessage} />
           </div>
         </section>
+
       </main>
     </div>
   );

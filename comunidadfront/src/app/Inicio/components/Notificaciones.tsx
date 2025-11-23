@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { notificacionService } from '@/app/lib/api/notificacionApi';
+import { getNotificacionNombre } from "../../lib/api/notificacionApi";
 
 interface Notificacion {
   id: number;
@@ -32,7 +33,9 @@ export default function Notificaciones({ perfilId }: NotificacionesProps) {
     try {
       setLoading(true);
       setError(null);
-      const data = await notificacionService.getNotificacionesByPerfil(perfilId);
+      console.log('Cargando notificaciones para perfilId:', perfilId);
+      const data = await getNotificacionNombre(perfilId.razonSocial);
+      console.log('Notificaciones cargadas:', data);
       setNotificaciones(data);
     } catch (err) {
       setError('Error al cargar notificaciones');
@@ -146,7 +149,7 @@ export default function Notificaciones({ perfilId }: NotificacionesProps) {
   const handleNotificacionClick = (notificacion: Notificacion) => {
     // Navegar según el tipo de notificación
     if (notificacion.chatIdChat) {
-      window.location.href = `/Perfil/Chat?id=${notificacion.chatIdChat}`;
+      window.location.href = `/Chat/${notificacion.chatIdChat}`;
     } else if (notificacion.novedadIdNovedad) {
       window.location.href = `/Novedades#${notificacion.novedadIdNovedad}`;
     }

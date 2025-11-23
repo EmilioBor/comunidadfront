@@ -1,6 +1,15 @@
+import { useEffect } from "react";
+
 export default function ChatMessages({ messages, bottomRef }: any) {
+  
+  useEffect(() => {
+    if (bottomRef?.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
+    <div className="flex-1 overflow-y-auto p-4 space-y-3 relative min-h-0">
       {messages.map((m: any) => (
         <div
           key={m.id}

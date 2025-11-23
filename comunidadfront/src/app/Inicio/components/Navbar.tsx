@@ -21,7 +21,7 @@ export default function Navbar() {
         
         // Obtener el perfilId del usuario logueado
         if (data?.perfil?.id) {
-          setPerfilId(data.perfil.id);
+          setPerfilId(data.perfil);
         }
       } catch (err) {
         console.error("Error cargando usuario:", err);

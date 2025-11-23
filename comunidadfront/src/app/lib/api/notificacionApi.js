@@ -6,7 +6,7 @@ export const notificacionService = {
   // Obtener todas las notificaciones
   async getNotificaciones() {
     try {
-      const response = await fetch(`${API_BASE}/notificacions`);
+      const response = await fetch(`https://localhost:7168/api/Notificacion/api/v1/notificacions`);
       if (!response.ok) throw new Error('Error al obtener notificaciones');
       return await response.json();
     } catch (error) {
@@ -19,6 +19,7 @@ export const notificacionService = {
   async getNotificacionesByPerfil(perfilId) {
     try {
       const allNotificaciones = await this.getNotificaciones();
+      // console.log('Todas las notificaciones:', allNotificaciones);
       return allNotificaciones.filter(notif => notif.perfilIdPerfil === perfilId);
     } catch (error) {
       console.error('Error:', error);
@@ -85,3 +86,28 @@ export async function postNotificacion(data) {
     throw error;
   } 
 }
+
+
+
+    //obtener perfil por nombre
+        export async function getNotificacionNombre(data) {
+        try {
+            const encoded = encodeURIComponent(data); 
+            const url = `https://localhost:7168/api/Notificacion/api/v1/notificacion/buscar-nombre/${encoded}`;
+            console.log("GET:", url);
+
+            const response = await axios.get(url);
+
+            return response.data;
+
+        } catch (error) {
+            console.error("Error en GetNotificacionByPerfil:", error);
+
+            // Si el backend devuelve 404 → el usuario no tiene perfil aún
+            if (error.response?.status === 404) {
+            return null;  // manejalo en el front
+            }
+
+            throw error;
+        }
+    }
