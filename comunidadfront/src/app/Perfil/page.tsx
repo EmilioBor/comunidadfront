@@ -199,7 +199,7 @@ export default function Perfil() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      
       
       {/* MODAL DE IMAGEN DE PERFIL - CENTRADO EN TODA LA PANTALLA SIN FONDO OSCURO */}
       {mostrarModalImagen && (

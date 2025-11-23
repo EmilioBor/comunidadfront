@@ -366,7 +366,7 @@ export default function Donaciones() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        
         <div className="flex w-full justify-center items-center h-64">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-4"></div>
@@ -380,7 +380,7 @@ export default function Donaciones() {
   if (error && !perfil) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        
         <div className="flex w-full justify-center items-center h-64">
           <div className="text-center">
             <div className="text-red-500 text-lg mb-4">⚠️ {error}</div>
@@ -398,7 +398,7 @@ export default function Donaciones() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      
       <div className="flex w-full">
         {/* COLUMNA IZQUIERDA - Mismo diseño que Perfil */}
         <aside className="w-1/4 h-screen p-6 flex flex-col items-center bg-gray-100">
