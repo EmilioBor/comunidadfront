@@ -18,7 +18,7 @@ interface PerfilType {
 
 interface PublicacionTipo {
   id: number;
-  descripcion: string;
+  nombre: string;
 }
 
 interface CrearPublicacionProps {
@@ -57,6 +57,7 @@ const CrearPublicacion: React.FC<CrearPublicacionProps> = ({ onNuevaPublicacion 
         const tiposData = await getPublicacionTipos();
 
         setPerfil(perfilData);
+        console.log("tiposData", tiposData);  
         setPublicacionTipos(tiposData);
 
         setFormData(prev => ({
@@ -135,6 +136,7 @@ const CrearPublicacion: React.FC<CrearPublicacionProps> = ({ onNuevaPublicacion 
       alert("Error al crear publicación");
     }
   };
+  console.log("publicacionTipos", publicacionTipos);
 
   return (
     <div className="bg-[#D9D9D9] text-black rounded-2xl p-4 flex flex-col gap-4 w-full max-w-3xl mx-auto">
@@ -156,21 +158,27 @@ const CrearPublicacion: React.FC<CrearPublicacionProps> = ({ onNuevaPublicacion 
         className="bg-white rounded-lg p-2 text-black text-sm font-bold w-full"
       />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="tipoDonacion" className="text-sm font-semibold">Tipo de Publicación</label>
-        <select
-          id="tipoDonacion"
-          name="tipoDonacionId"
-          value={formData.tipoDonacionId}
-          onChange={handleChange}
-          className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-green-400"
-        >
-          <option value="">Seleccionar tipo de publicación</option>
-          {publicacionTipos.map((tipo) => (
-            <option key={tipo.id} value={tipo.id}>{tipo.descripcion}</option>
-          ))}
-        </select>
-      </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-black">
+              Tipo de Publicación 
+            </label>
+            <select
+              name="tipoDonacionId" // vinculamos al formData
+              value={formData.tipoDonacionId}
+              onChange={handleChange} // reutilizamos tu handleChange
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-black"
+              required
+            >
+              <option value="">Selecciona un tipo</option>
+              {publicacionTipos.map((tipo) => (
+                <option key={tipo.id} value={tipo.id}>
+                  {tipo.nombre} {/* coincide con tu interfaz PublicacionTipo */}
+                </option>
+              ))}
+            </select>
+          </div>
+
+
 
       <textarea
         name="descripcion"

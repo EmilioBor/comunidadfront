@@ -47,3 +47,12 @@ body {
 .animate-scroll-vertical-slow {
   animation: scrollVerticalSlow 45s linear infinite;
 }
+/* Forzar color de texto negro en el select y en las opciones */
+select {
+  color: black;              /* Texto seleccionado */
+}
+
+select option {
+  color: black !important;   /* Texto en el dropdown */
+  background-color: white !important; /* Fondo del dropdown */
+}
