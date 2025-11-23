@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 
 import { GetUserByPerfil } from "@/app/lib/api/perfil";
 
-
 interface Publicacion {
   id: number;
   titulo: string;
@@ -40,28 +39,48 @@ export default function Perfil() {
   const [selectedTipo, setSelectedTipo] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [perfil, setPerfil] = useState<PerfilType | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
 
-
-
-
   const loadPublicaciones = async () => {
     try {
       setLoading(true);
-
       const pubs = await obtenerPublicaciones();
 
-      // Agregar perfil con imagen a cada publicación
+      console.log("📦 Publicaciones obtenidas:", pubs);
+
       const publicacionesConPerfil = await Promise.all(
         pubs.map(async (pub: Publicacion) => {
-          const perfilData = await obtenerPerfilNombre(pub.nombrePerfilIdPerfil);
-          return { ...pub, perfil: perfilData };
+          try {
+            console.log(`🔍 Procesando publicación ${pub.id}:`, pub.nombrePerfilIdPerfil);
+            
+            const perfilData = await obtenerPerfilNombre(pub.nombrePerfilIdPerfil);
+            console.log(`📊 Perfil obtenido para pub ${pub.id}:`, perfilData);
+            
+            return { 
+              ...pub, 
+              perfil: perfilData || { 
+                id: 0, 
+                razonSocial: pub.nombrePerfilIdPerfil,
+                imagen: null 
+              }
+            };
+          } catch (error) {
+            console.error(`❌ Error cargando perfil para publicación ${pub.id}:`, error);
+            return { 
+              ...pub, 
+              perfil: { 
+                id: 0, 
+                razonSocial: pub.nombrePerfilIdPerfil,
+                imagen: null 
+              }
+            };
+          }
         })
       );
 
+      console.log("✅ Publicaciones finales:", publicacionesConPerfil);
       setPublicaciones(publicacionesConPerfil);
 
     } catch (error) {
@@ -75,19 +94,12 @@ export default function Perfil() {
     loadPublicaciones();
   }, []);
 
-  const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setMenuAbierto(menuAbierto === publicacionId ? null : publicacionId);
-  };
-
-  const cerrarMenu = () => {
-    setMenuAbierto(null);
-  };
-
-  // Cerrar menú al hacer click fuera
+  // Cerrar menú al hacer click fuera - CORREGIDO
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      // Cerrar menú si se hace click en cualquier lugar que no sea un menú
+      const target = event.target as HTMLElement;
+      if (!target.closest('.menu-opciones')) {
         setMenuAbierto(null);
       }
     };
@@ -96,94 +108,87 @@ export default function Perfil() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Función para construir la URL de donación - CORREGIDA
+  // Función para toggle del menú
+  const toggleMenu = (publicacionId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log("🔄 Toggle menu para publicación:", publicacionId);
+    setMenuAbierto(menuAbierto === publicacionId ? null : publicacionId);
+  };
+
+  // Función para cerrar el menú
+  const cerrarMenu = () => {
+    setMenuAbierto(null);
+  };
+
+  // Función para navegar a reporte - MEJORADA
+  const handleReportarClick = (publicacionId: number) => {
+    console.log("📝 Reportando publicación ID:", publicacionId);
+    cerrarMenu();
+    router.push(`/Reporte?publicacionId=${publicacionId}`);
+  };
+
+  // Función para construir la URL de donación
   const getDonacionUrl = (publicacion: Publicacion) => {
-    if (!publicacion.perfil?.id) {
-      console.error('No se pudo obtener el perfil de destino para la publicación:', publicacion.id);
-      console.log('Perfil data:', publicacion.perfil);
-      return '#';
-    }
+    const perfilId = publicacion.perfil?.id || 0;
+    const razonSocial = publicacion.perfil?.razonSocial || publicacion.nombrePerfilIdPerfil || "Destino";
 
     const params = new URLSearchParams({
       publicacionId: publicacion.id.toString(),
-      perfilDestinoId: publicacion.perfil.id.toString(), // ID REAL del perfil
-      razonSocialDestino: publicacion.perfil.razonSocial || publicacion.nombrePerfilIdPerfil
+      perfilDestinoId: perfilId.toString(),
+      razonSocialDestino: razonSocial
     });
     
-    console.log(`URL de donación para publicación ${publicacion.id}:`, `/Donacion/Crear?${params.toString()}`);
     return `/Donacion/Crear?${params.toString()}`;
   };
 
-    // 🔹 Crear chat y redirigir
-    const handleChatClick = async (pub: Publicacion) => {
-      try {
-        // 1) usuario logeado desde iron-session
-                const me = await fetch("/api/user/me").then((r) => r.json());
-                console.log("📊 Datos del usuario logueado:", me);
-
-                
-                // Guardar el ID del usuario logueado - ESTE ES EL ID CORRECTO
-                setUserId(me.id);
-                console.log("🔑 ID del usuario logueado:", me.id);
-                
-                const perfilData = await GetUserByPerfil(me.id);
-                console.log("📄 Datos del perfil:", perfilData);
-                if (!perfilData) {
-                  router.push("/Perfil/Crear");
-                  return;
-                }
-                setPerfil(perfilData);
-
-
-        const perfilIdActual = perfilData.id; // ajustá al nombre real
-        const receptorId = pub.perfil?.id; // perfil dueño de la publicación
-        console.log("Perfil actual ID:", perfilIdActual);
-        console.log("Receptor ID:", receptorId);
-        if (!perfilIdActual || !receptorId) {
-          console.error("Faltan IDs de perfil/receptor");
-          return;
-        }
-
-        // 2) Crear chat (si ya existe, tu servicio lo devuelve)
-        const body = {
-          id: 0,
-          publicacionIdPublicacion: pub.id,
-          perfilIdPerfil: perfilIdActual,
-          receptorIdReceptor: receptorId,
-        };
-
-        const resChat = await fetch(
-          "https://localhost:7168/api/Chat/api/v1/agrega/chat",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          }
-        );
-
-        if (!resChat.ok) {
-          console.error("Error al crear/obtener chat");
-          return;
-        }
-
-        const chat = await resChat.json();
-
-        // 3) Redirigir al chat
-        router.push(`/Chat/${chat.id}`);
-      } catch (err) {
-        console.error("Error en handleChatClick:", err);
+  // 🔹 Crear chat y redirigir
+  const handleChatClick = async (pub: Publicacion) => {
+    try {
+      const me = await fetch("/api/user/me").then((r) => r.json());
+      setUserId(me.id);
+      
+      const perfilData = await GetUserByPerfil(me.id);
+      if (!perfilData) {
+        router.push("/Perfil/Crear");
+        return;
       }
-    };
+      setPerfil(perfilData);
 
+      const perfilIdActual = perfilData.id;
+      const receptorId = pub.perfil?.id;
+      
+      if (!perfilIdActual || !receptorId) {
+        console.error("Faltan IDs de perfil/receptor");
+        return;
+      }
 
+      const body = {
+        id: 0,
+        publicacionIdPublicacion: pub.id,
+        perfilIdPerfil: perfilIdActual,
+        receptorIdReceptor: receptorId,
+      };
 
+      const resChat = await fetch(
+        "https://localhost:7168/api/Chat/api/v1/agrega/chat",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
 
+      if (!resChat.ok) {
+        console.error("Error al crear/obtener chat");
+        return;
+      }
 
-
-
-
-
-
+      const chat = await resChat.json();
+      router.push(`/Chat/${chat.id}`);
+    } catch (err) {
+      console.error("Error en handleChatClick:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -211,33 +216,13 @@ export default function Perfil() {
       {/* Lista de publicaciones */}
       {publicaciones
         .filter(pub => !selectedTipo || pub.nombrePublicacionTipoIdPublicacionTipo === selectedTipo)
-        .map(pub => (
-          <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
+        .map(pub => {
+          // Crear una referencia única para cada menú
+          const MenuOpciones = () => {
+            const menuRef = useRef<HTMLDivElement>(null);
             
-            {/* Perfil - MODIFICADO: Nombre clickeable */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-3">
-                <img
-                  src={pub.perfil?.imagen ? `data:image/jpeg;base64,${pub.perfil.imagen}` : "/default-profile.png"}
-                  alt="Foto perfil"
-                  className="w-8 h-8 rounded-full object-cover bg-gray-200"
-                />
-                {/* NOMBRE DEL PERFIL CLICKEABLE - NUEVO */}
-                {pub.perfil?.id ? (
-                  <Link 
-                    href={`/Perfil/VerPerfil?id=${pub.perfil.id}`}
-                    className="font-medium text-black hover:text-blue-600 transition-colors cursor-pointer"
-                  >
-                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-black">
-                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil}
-                  </span>
-                )}
-              </div>
-
-              <div className="relative" ref={menuRef}>
+            return (
+              <div className="relative menu-opciones" ref={menuRef}>
                 <button
                   onClick={(e) => toggleMenu(pub.id, e)}
                   className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-full transition-all duration-200 text-xl leading-none flex items-center justify-center w-8 h-8"
@@ -248,47 +233,67 @@ export default function Perfil() {
 
                 {menuAbierto === pub.id && (
                   <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[150px]">
-                    <Link
-                      href={`/Reporte?publicacionId=${pub.id}`}
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded text-sm text-black transition-colors duration-150"
-                      onClick={cerrarMenu}
+                    <button
+                      onClick={() => handleReportarClick(pub.id)}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 rounded text-sm text-black transition-colors duration-150 w-full text-left"
                     >
                       <span>Reportar...</span>
-                    </Link>
+                    </button>
                   </div>
                 )}
               </div>
+            );
+          };
+
+          return (
+            <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
+              
+              {/* Perfil */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={pub.perfil?.imagen ? `data:image/jpeg;base64,${pub.perfil.imagen}` : "/default-profile.png"}
+                    alt="Foto perfil"
+                    className="w-8 h-8 rounded-full object-cover bg-gray-200"
+                  />
+                  <span className="font-medium text-black">
+                    {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil || "Usuario"}
+                  </span>
+                </div>
+
+                {/* MENÚ DESPLEGABLE - CON REFERENCIA ÚNICA PARA CADA PUBLICACIÓN */}
+                <MenuOpciones />
+              </div>
+
+              {/* Contenido */}
+              <h3 className="font-bold text-xl mb-2 text-black">{pub.titulo}</h3>
+              <p className="text-sm text-black mb-3">{pub.descripcion}</p>
+              <p className="text-xs text-gray-500 mb-3">Fecha: {new Date(pub.fechaCreacion).toLocaleDateString()}</p>
+              <p className="text-xs text-gray-500 mb-3">Localidad: {pub.nombreLocalidadIdLocalidad}</p>
+
+              <img
+                src={`data:image/jpeg;base64,${pub.imagen}`}
+                alt="Imagen publicación"
+                className="rounded-xl w-full object-cover mb-3 max-h-64"
+              />
+
+              <div className="flex justify-end gap-3">
+                <Link 
+                  href={getDonacionUrl(pub)}
+                  className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
+                >
+                  Donar
+                </Link>
+                <button
+                  onClick={() => handleChatClick(pub)}
+                  className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
+                >
+                  Chat
+                </button>
+              </div>
             </div>
-
-            {/* Contenido */}
-            <h3 className="font-bold text-xl mb-2 text-black">{pub.titulo}</h3>
-            <p className="text-sm text-black mb-3">{pub.descripcion}</p>
-            <p className="text-xs text-gray-500 mb-3">Fecha: {new Date(pub.fechaCreacion).toLocaleDateString()}</p>
-            <p className="text-xs text-gray-500 mb-3">Localidad: {pub.nombreLocalidadIdLocalidad}</p>
-
-            <img
-              src={`data:image/jpeg;base64,${pub.imagen}`}
-              alt="Imagen publicación"
-              className="rounded-xl w-full object-cover mb-3 max-h-64"
-            />
-
-            <div className="flex justify-end gap-3">
-              <Link 
-                href={getDonacionUrl(pub)}
-                className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
-              >
-                Donar
-              </Link>
-              <button
-                onClick={() => handleChatClick(pub)}
-                className="bg-[#7DB575] text-white px-6 py-1 rounded-full hover:bg-green-600 transition"
-              >
-                Chat
-              </button>
-            </div>
-
-          </div>
-        ))}
+          );
+        })}
     </div>
   );
 }
