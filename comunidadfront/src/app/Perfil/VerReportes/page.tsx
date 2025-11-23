@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "../../Inicio/components/Navbar";
-import { obtenerReportesCompletos, enviarAdvertenciaUsuario } from "./actions";
+import { obtenerReportesCompletos } from "./actions";
+import { GetUserByPerfil } from "@/app/lib/api/perfil";
 
 interface Publicacion {
   id: number;
@@ -188,45 +189,6 @@ export default function VerReportes() {
     setMensajeAdvertencia("");
   };
 
-  const enviarAdvertencia = async () => {
-    if (!advertenciaModal.perfilId || !mensajeAdvertencia.trim()) return;
-
-    try {
-      setEnviandoAdvertencia(true);
-      const resultado = await enviarAdvertenciaUsuario(
-        advertenciaModal.perfilId,
-        mensajeAdvertencia
-      );
-
-      if (resultado.success) {
-        alert("Advertencia enviada exitosamente");
-        cerrarModalAdvertencia();
-      } else {
-        alert("Error al enviar advertencia: " + resultado.error);
-      }
-    } catch (err) {
-      alert("Error inesperado al enviar advertencia");
-      console.error(err);
-    } finally {
-      setEnviandoAdvertencia(false);
-    }
-  };
-
-  const marcarComoResuelto = async (reporteId: number) => {
-    try {
-      setReportes(prev => 
-        prev.map(reporte => 
-          reporte.id === reporteId 
-            ? { ...reporte, estado: 'resuelto' }
-            : reporte
-        )
-      );
-      alert("Reporte marcado como resuelto");
-    } catch (err) {
-      alert("Error al marcar el reporte como resuelto");
-      console.error(err);
-    }
-  };
 
   if (loading) {
     return (
@@ -241,6 +203,80 @@ export default function VerReportes() {
       </div>
     );
   }
+
+
+const enviarAdvertencia = async () => {
+  if (!advertenciaModal.perfilId) return;
+
+  try {
+    setEnviandoAdvertencia(true);
+
+    // 1. Obtener al usuario logueado
+    const meRes = await fetch("/api/user/me");
+    if (!meRes.ok) throw new Error("No se pudo obtener el usuario logueado");
+    const me = await meRes.json();
+
+    // 2. Obtener el perfil del usuario logueado
+    const perfilLogueado = await GetUserByPerfil(me.id);
+    if (!perfilLogueado?.id) throw new Error("No se encontró el perfil del usuario logueado");
+
+    // 3. Crear el chat con receptor
+    const crearChatRes = await fetch(
+      "https://localhost:7168/api/Chat/api/v1/agrega/chat",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: 0,
+          publicacionIdPublicacion: 0, // o dinámico si aplica
+          perfilIdPerfil: perfilLogueado.id,
+          receptorIdReceptor: advertenciaModal.perfilId, // <- aquí usamos el perfil del modal
+        }),
+      }
+    );
+
+    if (!crearChatRes.ok) {
+      const errTxt = await crearChatRes.text();
+      throw new Error("Error creando chat: " + errTxt);
+    }
+
+
+    const chatCreado = await crearChatRes.json();
+
+    // Enviar mensaje inicial
+      const mensajeInicial = mensajeAdvertencia || "Hola, hemos revisado tu publicación.";
+      
+      const fechaHora = new Date().toISOString().slice(0, -1);
+      await fetch("https://localhost:7168/api/Mensaje/api/v1/agrega/mensaje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contenido: mensajeInicial,
+          fechaHora: fechaHora,
+          chatIdChat: chatCreado.id,
+          perfilIdPerfil: perfilLogueado.id,
+        }),
+      });
+
+
+    // 4. Redirigir al chat creado
+    router.push(`/Chat/${chatCreado.id}`);
+
+    return {
+      success: true,
+      chatId: chatCreado.id,
+    };
+  } catch (err) {
+    console.error(err);
+    return {
+      success: false,
+      error: err,
+    };
+  } finally {
+    setEnviandoAdvertencia(false);
+  }
+};
+
 
   return (
     <div className="flex flex-col min-h-screen">

@@ -1,5 +1,7 @@
 "use server";
 
+import { GetUserByPerfil } from "@/app/Chat/components/useChat";
+
 // Versión corregida que usa los campos correctos de la API
 export async function obtenerReportesCompletos() {
   try {
@@ -244,23 +246,3 @@ export async function obtenerReportesCompletos() {
 }
 
 // Función para enviar advertencia
-export async function enviarAdvertenciaUsuario(perfilId, mensaje) {
-  try {
-    console.log(`📤 Enviando advertencia a perfil ${perfilId}:`, mensaje);
-    
-    // Aquí implementarías la llamada a tu API para enviar la advertencia
-    // Por ahora simulamos éxito
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      success: true,
-      message: "Advertencia enviada exitosamente"
-    };
-  } catch (error) {
-    console.error("Error enviando advertencia:", error);
-    return {
-      success: false,
-      error: "Error al enviar la advertencia"
-    };
-  }
-}
