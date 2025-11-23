@@ -81,9 +81,15 @@ const SidebarPerfil = () => {
           >
             Donaciones
           </Link>
-          <button className="bg-[#7DB575] text-white py-2 rounded-xl hover:bg-green-600 transition">
+          
+          <Link
+            href="/Chat"
+            className="bg-[#7DB575] text-white py-2 rounded-xl hover:bg-green-600 transition text-center block"
+          >
             Chats
-          </button>
+          </Link>
+        
+
         </div>
       </div>
     </aside>

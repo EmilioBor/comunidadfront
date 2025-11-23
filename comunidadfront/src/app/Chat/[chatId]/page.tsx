@@ -8,6 +8,7 @@ import ChatMessages from "../components/ChatMessages";
 import ChatInput from "../components/ChatInput";
 import ChatSidebar from "../components/ChatSidebar";
 import { GetUserByPerfil } from "@/app/lib/api/perfil";
+import { obternerChatByPerfil } from "./actions";
 
 export default function ChatPage() {
   const params = useParams();
@@ -15,6 +16,8 @@ export default function ChatPage() {
 
   const [perfil, setPerfil] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [chats, setChats] = useState<any[]>([]);
 
   // 🔹 1) Cargar usuario logueado
   useEffect(() => {
@@ -33,14 +36,32 @@ export default function ChatPage() {
     loadPerfil();
   }, []);
 
-  // 🔹 2) Hook del chat - solo cuando perfil esté cargado
+  // 🔹 2) Cuando ya tengo el perfil → obtener la lista de chats
+  useEffect(() => {
+    if (!perfil) return;
+
+    async function loadChats() {
+      try {
+        const lista = await obternerChatByPerfil(perfil.razonSocial);
+        setChats(lista);
+      } catch (err) {
+        console.error("Error cargando lista de chats:", err);
+      } finally {
+        setLoadingChats(false);
+      }
+    }
+
+    loadChats();
+  }, [perfil]);
+
+  // 🔹 3) Hook del chat - solo cuando perfil esté cargado
   const chat = useChat({
     id: chatId,
     perfilNombre: perfil?.razonSocial ?? "",
     enabled: !!perfil,
   });
 
-  if (loadingUser) {
+  if (loadingUser || loadingChats) {
     return <p className="p-4 text-black">Cargando usuario…</p>;
   }
 
@@ -56,30 +77,20 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-[#EBFFF7]">
       {/* Sidebar */}
-      <ChatSidebar chats={[]} selectedChatId={chatId} />
+      <ChatSidebar chats={chats} selectedChatId={chatId} perfil={perfil} />
 
       {/* Main */}
       <main className="flex-1 flex flex-col p-6 overflow-hidden">
-        {/* Header */}
-        <ChatHeader title="Chat" />
+        <ChatHeader title="Chat" chats={chats} perfil={perfil} chatId={chatId} />
 
-        {/* Mensajes */}
-      <section className="flex-1 min-h-0 relative rounded-b-3xl shadow flex flex-col">
-        
-        {/* Fondo */}
-        <div className="absolute inset-0 bg-[url('/background-login.png')] bg-cover bg-center bg-no-repeat opacity-30"></div>
-
-        {/* Overlay celeste transparente */}
-        <div className="absolute inset-0 bg-cyan-400/30"></div>
-
-        {/* Contenido del chat */}
-        <div className="relative flex-1 flex flex-col">
-          <ChatMessages messages={chat.messages} bottomRef={chat.bottomRef} />
-          <ChatInput onSend={chat.sendMessage} />
-        </div>
-
-      </section>
-
+        <section className="flex-1 min-h-0 relative rounded-b-3xl shadow flex flex-col">
+          <div className="absolute inset-0 bg-[url('/background-login.png')] bg-cover bg-center bg-no-repeat opacity-30"></div>
+          <div className="absolute inset-0 bg-cyan-400/30"></div>
+          <div className="relative flex-1 flex flex-col">
+            <ChatMessages messages={chat.messages} bottomRef={chat.bottomRef} />
+            <ChatInput onSend={chat.sendMessage} />
+          </div>
+        </section>
       </main>
     </div>
   );

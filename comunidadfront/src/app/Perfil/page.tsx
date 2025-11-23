@@ -256,7 +256,7 @@ export default function Perfil() {
             Donaciones
           </Link>
           <Link
-            href="/Perfil/Chat"
+            href="/Chat"
             className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
           >
             Chats
