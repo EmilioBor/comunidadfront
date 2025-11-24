@@ -228,7 +228,7 @@ const enviarAdvertencia = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: 0,
-          publicacionIdPublicacion: 0, // o dinámico si aplica
+          publicacionIdPublicacion: null, // o dinámico si aplica
           perfilIdPerfil: perfilLogueado.id,
           receptorIdReceptor: advertenciaModal.perfilId, // <- aquí usamos el perfil del modal
         }),

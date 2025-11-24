@@ -1,21 +1,15 @@
-// app/Donacion/Detalle/page.tsx - VERSIÓN CON MÚLTIPLES DETALLES
+// app/Donacion/Detalle/page.tsx - VERSIÓN SIN obtenerEstadosDonacion
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { crearDonacionDetalle, obtenerEstadosDonacion } from "./actions";
+import { crearDonacionDetalle } from "./actions";
 
 interface DetalleItem {
   id: number;
   Descripcion: string;
   Cantidad: number;
-  DonacionEstadoIdDonacionEstado: number;
   DonacionIdDonacion: number;
-}
-
-interface EstadoDonacion {
-  id: number;
-  nombre: string;
 }
 
 export default function DonacionDetalle() {
@@ -25,7 +19,6 @@ export default function DonacionDetalle() {
   const [descripcion, setDescripcion] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [donacionId, setDonacionId] = useState<string | null>(null);
-  const [estadosDonacion, setEstadosDonacion] = useState<EstadoDonacion[]>([]);
   const [detalles, setDetalles] = useState<DetalleItem[]>([]);
   const [cargando, setCargando] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -35,59 +28,39 @@ export default function DonacionDetalle() {
   // Obtener parámetros de la URL
   const donacionIdParam = searchParams.get('donacionId');
 
-  // Cargar estados de donación disponibles
+  // Cargar datos iniciales SIN obtenerEstadosDonacion
   useEffect(() => {
-    const cargarEstadosDonacion = async () => {
+    const cargarDatosIniciales = () => {
       try {
         setCargando(true);
         setError("");
-        
-        const resultado = await obtenerEstadosDonacion();
-        
-        if (resultado.success) {
-          setEstadosDonacion(resultado.data);
-        } else {
-          throw new Error(resultado.error || 'No se pudieron cargar los estados de donación');
-        }
 
         setDonacionId(donacionIdParam);
-        
+
+        if (!donacionIdParam) {
+          setError("No se recibió el ID de la donación");
+        }
+
       } catch (error) {
-        console.error('Error cargando estados:', error);
+        console.error('Error cargando datos:', error);
+        setError("Error al cargar los datos iniciales");
       } finally {
         setCargando(false);
       }
     };
 
-    if (donacionIdParam) {
-      cargarEstadosDonacion();
-    } else {
-      setError("No se recibió el ID de la donación");
-      setCargando(false);
-    }
+    cargarDatosIniciales();
   }, [donacionIdParam]);
 
-  // Encontrar el estado "Pendiente" (ID 1)
-  const encontrarEstadoPendiente = (): number => {
-    if (estadosDonacion.length > 0) {
-      const estadoPendiente = estadosDonacion.find(estado => 
-        estado.id === 1 || estado.nombre.toLowerCase().includes('pendiente')
-      );
-      
-      if (estadoPendiente) {
-        return estadoPendiente.id;
-      } else {
-        return estadosDonacion[0].id;
-      }
-    }
-    
-    return 1;
-  };
-
-  // Agregar detalle a la tabla
+  // Agregar detalle
   const agregarDetalle = () => {
-    if (!descripcion || !cantidad || !donacionId) {
-      setError("Descripción y cantidad son obligatorios");
+    if (!descripcion.trim()) {
+      setError("La descripción es obligatoria");
+      return;
+    }
+
+    if (!cantidad || !donacionId) {
+      setError("Cantidad y ID de donación son obligatorios");
       return;
     }
 
@@ -98,10 +71,9 @@ export default function DonacionDetalle() {
     }
 
     const nuevoDetalle: DetalleItem = {
-      id: Date.now(), // ID temporal para la lista
-      Descripcion: descripcion,
+      id: Date.now(),
+      Descripcion: descripcion.trim(),
       Cantidad: cantidadNum,
-      DonacionEstadoIdDonacionEstado: encontrarEstadoPendiente(),
       DonacionIdDonacion: parseInt(donacionId)
     };
 
@@ -111,7 +83,7 @@ export default function DonacionDetalle() {
     setError("");
   };
 
-  // Eliminar detalle de la tabla
+  // Eliminar detalle
   const eliminarDetalle = (id: number) => {
     setDetalles(detalles.filter(detalle => detalle.id !== id));
   };
@@ -127,28 +99,34 @@ export default function DonacionDetalle() {
     setError("");
 
     try {
-      let todosExitosos = true;
+      let detallesExitosos = 0;
+      let detallesFallidos = 0;
       const errores: string[] = [];
 
-      // Enviar cada detalle individualmente
-      for (const detalle of detalles) {
+      for (const [index, detalle] of detalles.entries()) {
         try {
           const resultado = await crearDonacionDetalle(detalle);
-          
-          if (!resultado.success) {
-            todosExitosos = false;
-            errores.push(`Error en "${detalle.Descripcion}": ${resultado.message}`);
+
+          if (resultado.success) {
+            detallesExitosos++;
+          } else {
+            detallesFallidos++;
+            errores.push(`"${detalle.Descripcion}": ${resultado.message}`);
           }
-        } catch (error) {
-          todosExitosos = false;
-          errores.push(`Error en "${detalle.Descripcion}": ${error.message}`);
+        } catch (error: any) {
+          detallesFallidos++;
+          errores.push(`"${detalle.Descripcion}": ${error.message}`);
         }
       }
 
-      if (todosExitosos) {
+      if (detallesFallidos === 0) {
         setMostrarModal(true);
+      } else if (detallesExitosos > 0) {
+        setError(
+          `Se crearon ${detallesExitosos} detalles exitosamente, pero ${detallesFallidos} fallaron:\n${errores.join('\n')}`
+        );
       } else {
-        setError(`Algunos detalles no se pudieron guardar:\n${errores.join('\n')}`);
+        setError(`Ningún detalle se pudo guardar:\n${errores.join('\n')}`);
       }
     } catch (error) {
       console.error('Error inesperado:', error);
@@ -158,9 +136,18 @@ export default function DonacionDetalle() {
     }
   };
 
+  // Enter para agregar detalle
+  const manejarKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      agregarDetalle();
+    }
+  };
+
+  // LOADING
   if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed" 
+      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed"
            style={{ backgroundImage: "url('/background-login.png')" }}>
         <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-8 w-full max-w-md text-gray-800 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
@@ -170,15 +157,16 @@ export default function DonacionDetalle() {
     );
   }
 
+  // ERROR sin donacionId
   if (error && !donacionId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4" 
+      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4"
            style={{ backgroundImage: "url('/background-login.png')" }}>
         <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-6 w-full max-w-md text-gray-800 text-center">
-          <div className="text-red-600 mb-4">{error}</div>
+          <div className="text-red-600 mb-4 text-sm">{error}</div>
           <button
             onClick={() => router.push('/Inicio')}
-            className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-700 transition"
+            className="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-700 transition text-sm"
           >
             Volver al Inicio
           </button>
@@ -187,13 +175,14 @@ export default function DonacionDetalle() {
     );
   }
 
+  // PÁGINA PRINCIPAL
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4" 
+    <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4"
          style={{ backgroundImage: "url('/background-login.png')" }}>
       
       <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-6 w-full max-w-2xl text-gray-800">
         
-        {/* Header */}
+        {/* HEADER */}
         <div className="text-center mb-6">
           <img src="/logo.png" alt="logo" className="w-10 h-10 mx-auto mb-2" />
           <h1 className="text-xl font-bold">Detalles de la Donación</h1>
@@ -209,33 +198,28 @@ export default function DonacionDetalle() {
           </div>
         )}
 
-        {/* Información de estado */}
-        <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
-          <p className="text-sm text-blue-700 text-center">
-            <span className="font-semibold">Estado:</span> Pendiente
-          </p>
-          <p className="text-xs text-blue-600 text-center mt-1">
-            Todos los detalles se crearán con estado "Pendiente"
+        {/* Info */}
+        <div className="bg-green-50 rounded-lg p-3 mb-4 border border-green-200">
+          <p className="text-sm text-green-700 text-center">
+            <span className="font-semibold">⚠️ Importante:</span> Cada detalle se creará automáticamente con estado "Pendiente"
           </p>
         </div>
 
-        {/* Formulario para agregar detalles */}
+        {/* FORM */}
         <div className="bg-white rounded-lg p-4 mb-4 border border-gray-300">
           <h3 className="font-semibold text-gray-800 mb-3">Agregar Detalle</h3>
           
           <div className="space-y-3">
+
             {/* Descripción */}
             <div>
-              <label className="block text-sm font-semibold mb-1">
-                Descripción
-              </label>
+              <label className="block text-sm font-semibold mb-1">Descripción</label>
               <textarea
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Describe el detalle específico...
-Ej: Zapatos talla 42, Arroz, Mantas, etc."
+                onKeyPress={manejarKeyPress}
+                placeholder="Describe el detalle..."
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-700 resize-none text-sm min-h-[80px]"
-                required
               />
             </div>
 
@@ -246,24 +230,25 @@ Ej: Zapatos talla 42, Arroz, Mantas, etc."
                 type="number"
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
-                placeholder="Ej: 5, 10, 100"
+                onKeyPress={(e) => e.key === 'Enter' && agregarDetalle()}
                 min="1"
+                placeholder="Ej: 5"
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-700 text-sm"
-                required
               />
             </div>
 
             <button
               type="button"
               onClick={agregarDetalle}
-              className="w-full bg-green-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-green-600 transition text-sm"
+              disabled={!descripcion.trim() || !cantidad}
+              className="w-full bg-green-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-green-600 transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               + Agregar a la Lista
             </button>
           </div>
         </div>
 
-        {/* Tabla de detalles */}
+        {/* TABLA */}
         {detalles.length > 0 && (
           <div className="bg-white rounded-lg p-4 mb-4 border border-gray-300">
             <h3 className="font-semibold text-gray-800 mb-3">
@@ -280,18 +265,14 @@ Ej: Zapatos talla 42, Arroz, Mantas, etc."
                   </tr>
                 </thead>
                 <tbody>
-                  {detalles.map((detalle, index) => (
-                    <tr key={detalle.id} className="border-b border-gray-100">
-                      <td className="py-2 text-gray-800">
-                        {detalle.Descripcion}
-                      </td>
-                      <td className="py-2 text-center text-gray-800 font-medium">
-                        {detalle.Cantidad}
-                      </td>
+                  {detalles.map(detalle => (
+                    <tr key={detalle.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-2 text-gray-800 text-sm">{detalle.Descripcion}</td>
+                      <td className="py-2 text-center text-gray-800 font-medium">{detalle.Cantidad}</td>
                       <td className="py-2 text-center">
                         <button
                           onClick={() => eliminarDetalle(detalle.id)}
-                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                          className="text-red-500 hover:text-red-700 text-xs font-medium bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition"
                         >
                           Eliminar
                         </button>
@@ -302,34 +283,34 @@ Ej: Zapatos talla 42, Arroz, Mantas, etc."
               </table>
             </div>
 
-            {/* Resumen */}
             <div className="mt-3 pt-3 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">
                   Total de detalles: <strong>{detalles.length}</strong>
                 </span>
-                <span className="text-sm text-gray-600">
-                  Total de items: <strong>{detalles.reduce((sum, detalle) => sum + detalle.Cantidad, 0)}</strong>
+                <span className="text-gray-600">
+                  Total items: <strong>
+                    {detalles.reduce((sum, d) => sum + d.Cantidad, 0)}
+                  </strong>
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Botones principales */}
+        {/* BOTONES */}
         <div className="flex gap-3 pt-2">
           <button
-            type="button"
             onClick={() => router.push('/Inicio')}
             className="flex-1 bg-gray-300 text-gray-800 font-semibold py-2 rounded-lg shadow hover:bg-gray-400 transition text-sm"
           >
             Cancelar
           </button>
+
           <button
-            type="button"
             onClick={enviarDetalles}
             disabled={enviando || detalles.length === 0}
-            className="flex-1 bg-white text-gray-800 font-semibold py-2 rounded-lg shadow hover:bg-gray-200 transition text-sm disabled:bg-gray-200 disabled:cursor-not-allowed flex items-center justify-center"
+            className="flex-1 bg-white text-gray-800 font-semibold py-2 rounded-lg shadow hover:bg-gray-200 transition text-sm disabled:bg-gray-200 disabled:cursor-not-allowed flex items-center justify-center border border-gray-300"
           >
             {enviando ? (
               <>
@@ -342,14 +323,14 @@ Ej: Zapatos talla 42, Arroz, Mantas, etc."
           </button>
         </div>
 
-        {/* Modal de éxito */}
+        {/* Modal */}
         {mostrarModal && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
             <div className="bg-white p-5 rounded-xl shadow-lg w-full max-w-xs text-center">
               <div className="text-green-500 text-4xl mb-3">✅</div>
               <h3 className="text-lg font-semibold text-green-700 mb-2">¡Donación Completada!</h3>
               <p className="text-gray-600 text-sm mb-4">
-                Se guardaron correctamente {detalles.length} detalles de donación.
+                Se guardaron correctamente {detalles.length} detalles.
               </p>
               <button
                 onClick={() => router.push("/Inicio")}
@@ -360,6 +341,7 @@ Ej: Zapatos talla 42, Arroz, Mantas, etc."
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
