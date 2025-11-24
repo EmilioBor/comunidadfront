@@ -268,7 +268,7 @@ export default function VerPerfil() {
   if (cargando) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+        
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
@@ -282,7 +282,7 @@ export default function VerPerfil() {
   if (errorCarga || !perfil) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+       
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-lg text-red-600 mb-4">{errorCarga || "No se pudo cargar el perfil"}</p>
@@ -300,7 +300,7 @@ export default function VerPerfil() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      
       
       {/* MODAL DE IMAGEN DE PERFIL - CENTRADO EN TODA LA PANTALLA SIN FONDO OSCURO */}
       {mostrarModalImagen && (

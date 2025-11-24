@@ -1,24 +1,19 @@
+// app/layout.tsx (Server Component)
 import "./globals.css";
-import { MedievalSharp } from "next/font/google";
-
-const medieval = MedievalSharp({
-  subsets: ["latin"],
-  weight: "400",
-});
+import Navbar from "./Inicio/components/Navbar";
 
 export const metadata = {
   title: "Comunidad Solidaria",
   description: "Login",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={medieval.className}>{children}</body>
+      <body>
+        <Navbar />
+        {children}
+      </body>
     </html>
   );
 }

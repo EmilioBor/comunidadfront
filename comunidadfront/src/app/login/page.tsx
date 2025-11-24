@@ -20,7 +20,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       const response = await login(data);
 
         if (response && response.ok) {
-          router.push("/Inicio"); // Redirigir después del login exitoso
+            window.location.href = "/Inicio";
         } else {
           setError("Correo o contraseña inválidos");
           console.error("La respuesta de la API no contiene token");

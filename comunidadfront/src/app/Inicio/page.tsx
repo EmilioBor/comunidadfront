@@ -6,11 +6,13 @@ import QuienesSomos from "./components/QuienesSomos";
 import Footer from "./components/Footer";
 import Contactanos from "./components/Contactanos";
 
+
+
 export default function HomePage() {
   return (
     <main className="flex flex-col min-h-screen bg-white">
       <div className="fixed top-0 left-0 w-full z-50">
-        <Navbar />
+        
       </div>
       <Hero />
       <Colaborar />

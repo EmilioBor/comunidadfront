@@ -59,17 +59,19 @@ export default function Navbar() {
               className="w-10 h-10 rounded-full overflow-hidden border-2 border-white bg-gray-200 cursor-pointer"
               onMouseEnter={() => setShowProfileMenu(true)}
               onMouseLeave={() => setShowProfileMenu(false)}
-              onClick={() => window.location.href = "/Perfil"}
+              
               title="Ver perfil"
             >
+              <Link href={"/Perfil"}>
               <Image
-                src={`data:image/jpeg;base64,${user?.perfil?.imagen}`}
+                src={`data:image/jpeg;base64,${perfilId?.imagen}`}
                 alt="Perfil"
                 width={40}
                 height={40}
                 className="object-cover object-center"
                 unoptimized
-              />
+                />
+                </Link>
             </div>
 
             {/* MENU QUE SE MUESTRA SOLO AL HOVER SOBRE LA FOTO */}

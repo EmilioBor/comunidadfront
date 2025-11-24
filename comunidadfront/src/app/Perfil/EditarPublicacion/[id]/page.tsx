@@ -264,15 +264,20 @@ export default function EditarPublicacionPage() {
 
   return (
     <>
+          <div className="fixed top-0 left-0 w-full z-50">
+        
+          </div>
       <div className={`min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4 transition-all duration-300 ${
         mostrarModalExito ? 'blur-sm brightness-90' : ''
       }`} 
            style={{ backgroundImage: "url('/background-login.png')" }}>
+              <div className="fixed top-0 left-0 w-full z-50">
         
+      </div>
         <button
           type="button"
           onClick={handleVolver}
-          className="absolute top-6 left-6 bg-white text-center w-48 rounded-2xl h-14 text-black text-xl font-semibold group"
+          className="absolute top-24 left-6 bg-white text-center w-48 rounded-2xl h-14 text-black text-xl font-semibold group"
         >
           <div className="bg-green-400 rounded-xl h-12 w-1/4 flex items-center justify-center absolute left-1 top-[4px] group-hover:w-[184px] z-10 duration-500">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" height="25px" width="25px">

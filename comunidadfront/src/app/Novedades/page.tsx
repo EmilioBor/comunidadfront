@@ -49,7 +49,7 @@ export default function Novedades() {
   return (
     <div className="flex flex-col min-h-screen bg-white mt-0 pt-0">
       <div className="fixed top-0 left-0 w-full z-50">
-        <Navbar />
+        
       </div>
       <main className="flex-grow">
         <img
@@ -95,7 +95,12 @@ export default function Novedades() {
 
                     {/* PERFIL */}
                     {perfiles[novedad.nombrePerfilIdPerfil] && (
-                      <div className="flex flex-col items-center ml-4">
+                      <Link
+                        href={`/Perfil/VerPerfil?id=${
+                          perfiles[novedad.nombrePerfilIdPerfil].id
+                        }`}
+                        className="flex flex-col items-center ml-4 hover:opacity-80 transition"
+                      >
                         <img
                           src={`data:image/jpeg;base64,${
                             perfiles[novedad.nombrePerfilIdPerfil].imagen
@@ -106,7 +111,7 @@ export default function Novedades() {
                         <span className="text-sm font-medium text-gray-700 mt-1 text-center">
                           {perfiles[novedad.nombrePerfilIdPerfil].razonSocial}
                         </span>
-                      </div>
+                      </Link>
                     )}
                   </div>
 
