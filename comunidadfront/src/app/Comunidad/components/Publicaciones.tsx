@@ -248,7 +248,7 @@ export default function Perfil() {
           return (
             <div key={pub.id} className="bg-white rounded-2xl p-4 mb-4 border border-gray-300">
               
-              {/* Perfil */}
+              {/* Perfil - CORREGIDO: Ahora el nombre es un botón/link */}
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <img
@@ -256,9 +256,12 @@ export default function Perfil() {
                     alt="Foto perfil"
                     className="w-8 h-8 rounded-full object-cover bg-gray-200"
                   />
-                  <span className="font-medium text-black">
+                  <Link 
+                    href={`/Perfil/VerPerfil?id=${pub.perfil?.id || 0}`}
+                    className="font-medium text-black hover:text-green-600 hover:underline transition-colors duration-200"
+                  >
                     {pub.perfil?.razonSocial || pub.nombrePerfilIdPerfil || "Usuario"}
-                  </span>
+                  </Link>
                 </div>
 
                 {/* MENÚ DESPLEGABLE - CON REFERENCIA ÚNICA PARA CADA PUBLICACIÓN */}
