@@ -187,7 +187,7 @@ async function obtenerDonacionesDelPerfil(perfilId: number, tipoVista: "enviadas
     console.log(`🔍 Obteniendo donaciones para perfil ${perfilId}, vista: ${tipoVista}`);
     
     const todasLasDonaciones = await getDonaciones();
-    console.log(`📦 Total donaciones en sistema: ${todasLasDonaciones.length}`);
+    console.log("📦 TODAS LAS DONACIONES DEL SISTEMA:", data);
     
     if (todasLasDonaciones.length === 0) {
       console.log("❌ No hay donaciones en el sistema");
@@ -208,20 +208,22 @@ async function obtenerDonacionesDelPerfil(perfilId: number, tipoVista: "enviadas
     });
 
     // Filtrar según el tipo de vista
-    let donacionesFiltradas: Donacion[] = [];
+    let donacionesFiltradas: Donacion[] = [todasLasDonaciones[0]]; // Inicializar para evitar error de variable no definida
     
     const perfil= await getPerfilId (perfilId) 
     if (tipoVista === "enviadas") {
       // Donaciones ENVIADAS por este perfil (donde el perfil es el donante)
-      donacionesFiltradas = todasLasDonaciones.filter(donacion => 
-        donacion.perfilDonanteIdPerfilDonante === perfil.razonSocial
-      );
+        donacionesFiltradas = todasLasDonaciones.filter(
+          d => d.perfilDonanteIdPerfilDonante === perfil.razonSocial
+        );
+
       console.log(`✅ Donaciones ENVIADAS por perfil ${perfilId}: ${donacionesFiltradas.length}`);
     } else {
       // Donaciones RECIBIDAS por este perfil (donde el perfil es el receptor)
-      donacionesFiltradas = todasLasDonaciones.filter(donacion => 
-        donacion.perfilIdPerfil === perfil.razonSocial
-      );
+        donacionesFiltradas = todasLasDonaciones.filter(
+          d => d.perfilIdPerfil === perfil.id
+        );
+
       console.log(`✅ Donaciones RECIBIDAS por perfil ${perfilId}: ${donacionesFiltradas.length}`);
     }
 
