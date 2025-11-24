@@ -1,7 +1,6 @@
 // app/Donacion/Detalle/actions.js
 'use server'
 
-import { log } from "console";
 
 // Crear detalle de donación
 export async function crearDonacionDetalle(detalleData) {
@@ -42,7 +41,7 @@ export async function crearDonacionDetalle(detalleData) {
     }
 
     // Crear estado "Pendiente"
-    await crearEstadoPendiente(detalleIdReal);
+    await crearEstadoPendiente(datosParaEnviar.donacionIdDonacion);
 
     return {
       success: true,
@@ -57,17 +56,15 @@ export async function crearDonacionDetalle(detalleData) {
 }
 
 // Crear estado pendiente
-async function crearEstadoPendiente(detalleId) {
+async function crearEstadoPendiente( donacionIdDonacion) {
   try {
-    const endpoint = 'https://localhost:7168/api/DonacionEstado';
-
     const estadoData = {
       nombre: "Pendiente",
-      donacionDetalleEstadoIdDonacionDetalleEstado: Number(detalleId)
+      donacionIdDonacion: Number(donacionIdDonacion)
     };
 
-    console.log(estadoData)
-    
+    console.log("📤 Enviando estado pendiente:", estadoData);
+
     const response = await fetch('https://localhost:7168/api/DonacionEstado/api/v1/agrega/detalleDonacionTipo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
