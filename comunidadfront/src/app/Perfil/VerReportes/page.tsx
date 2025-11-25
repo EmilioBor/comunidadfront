@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { obtenerReportesCompletos } from "./actions";
 import { GetUserByPerfil } from "@/app/lib/api/perfil";
+import { deleteReporte } from "@/app/lib/api/reporte"; // Importar la función de eliminar
 
 interface Publicacion {
   id: number;
@@ -105,6 +106,7 @@ export default function VerReportes() {
   });
   const [mensajeAdvertencia, setMensajeAdvertencia] = useState("");
   const [enviandoAdvertencia, setEnviandoAdvertencia] = useState(false);
+  const [resolviendoReporte, setResolviendoReporte] = useState<number | null>(null);
   const [stats, setStats] = useState({conPublicacion: 0, conPerfilReportador: 0});
 
   const router = useRouter();
@@ -133,6 +135,31 @@ export default function VerReportes() {
       setError("Error inesperado al cargar reportes");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función para marcar reporte como resuelto (eliminarlo)
+  const marcarComoResuelto = async (reporteId: number) => {
+    try {
+      setResolviendoReporte(reporteId);
+      console.log(`🗑️ Eliminando reporte ${reporteId}...`);
+      
+      // Llamar a la función de eliminar reporte
+      await deleteReporte(reporteId);
+      
+      console.log(`✅ Reporte ${reporteId} eliminado correctamente`);
+      
+      // Actualizar la lista de reportes eliminando el reporte resuelto
+      setReportes(prevReportes => prevReportes.filter(reporte => reporte.id !== reporteId));
+      
+      // Mostrar mensaje de éxito
+      setError(null);
+      
+    } catch (err) {
+      console.error(`❌ Error al eliminar reporte ${reporteId}:`, err);
+      setError("Error al marcar el reporte como resuelto");
+    } finally {
+      setResolviendoReporte(null);
     }
   };
 
@@ -462,7 +489,6 @@ const enviarAdvertencia = async () => {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {reporte.perfilReportador.razonSocial}
                           </p>
-                          {/* REMOVIDO: <p className="text-xs text-gray-500">ID: {reporte.perfilReportadorId}</p> */}
                         </div>
                       </div>
                     ) : (
@@ -544,7 +570,6 @@ const enviarAdvertencia = async () => {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {reporte.perfilReportado.razonSocial}
                           </p>
-                          {/* REMOVIDO: <p className="text-xs text-gray-500">ID: {reporte.perfilReportadoId}</p> */}
                         </div>
                       </div>
                     ) : (
@@ -579,10 +604,17 @@ const enviarAdvertencia = async () => {
                       
                       <button 
                         onClick={() => marcarComoResuelto(reporte.id)}
-                        className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={reporte.estado === 'resuelto'}
+                        disabled={resolviendoReporte === reporte.id}
+                        className="flex-1 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
-                        {reporte.estado === 'resuelto' ? 'Resuelto' : 'Resolver'}
+                        {resolviendoReporte === reporte.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                            Eliminando...
+                          </>
+                        ) : (
+                          'Resolver'
+                        )}
                       </button>
                     </div>
                   </div>
