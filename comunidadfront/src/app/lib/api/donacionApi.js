@@ -44,6 +44,32 @@ export async function postDonacion(data) {
     }
 }
 
+
+    //obtener perfil por nombre
+        export async function getDonacionEstadoNombre(data) {
+        try {
+            const encoded = encodeURIComponent(data); 
+            const url = `https://localhost:7168/api/DonacionEstado/api/v1/donacion/nombredonacion/${encoded}`;
+            console.log("GET:", url);
+
+            const response = await axios.get(url);
+
+            return response.data;
+
+        } catch (error) {
+            console.error("Error en getDonacionEstadoNombre:", error);
+
+            // Si el backend devuelve 404 → el usuario no tiene perfil aún
+            if (error.response?.status === 404) {
+            return null;  // manejalo en el front
+            }
+
+            throw error;
+        }
+    }
+
+
+
 // Editar donación existente
 export async function putDonacion(id, donacion) {
     try {

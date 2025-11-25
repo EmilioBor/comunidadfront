@@ -117,3 +117,18 @@ export async function actualizarPerfilAPI(perfilId, datosPerfil) {
         throw error;
     }
 }
+
+
+
+// Obtener todas las donaciones
+export async function getPerfiles() {
+    try {
+        const response = await axios.get(`https://localhost:7168/api/Perfil/api/v1/perfils`, {
+            httpsAgent: new (require('https')).Agent({ rejectUnauthorized: false })
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error al obtener donaciones:', error);
+        throw error;
+    }
+}
