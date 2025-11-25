@@ -775,7 +775,7 @@ export default function Donaciones() {
                   Volver al Perfil
                 </Link>
                 <Link
-                  href="/Perfil/Chat"
+                  href="/Chat"
                   className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition"
                 >
                   Chats
@@ -842,7 +842,7 @@ export default function Donaciones() {
                           <p className="text-gray-600 text-sm">{donacion.fecha}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xl font-bold text-green-600">{donacion.monto}</p>
+                          {/* <p className="text-xl font-bold text-green-600">{donacion.monto}</p> */}
                           <div className="flex flex-col items-end gap-1">
                             <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                               Pendiente
@@ -1066,7 +1066,7 @@ export default function Donaciones() {
                           <p className="text-gray-600 text-sm">{donacion.fecha}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xl font-bold text-green-600">{donacion.monto}</p>
+                          {/* <p className="text-xl font-bold text-green-600">{donacion.monto}</p> */}
                           <div className="flex flex-col items-end gap-1">
                             <span className={`inline-block px-2 py-1 text-xs rounded-full ${
                               TIPOS_DONACIONES.find(t => t.id.toLowerCase() === donacion.tipo.toLowerCase())?.color || 
@@ -1189,7 +1189,6 @@ export default function Donaciones() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
                         <div>
                           <p><strong>Fecha:</strong> {donacionSeleccionada.fecha}</p>
-                          <p><strong>Monto/Valor:</strong> {donacionSeleccionada.monto}</p>
                           <p><strong>Tipo:</strong> {donacionSeleccionada.tipo}</p>
                           <p><strong>Estado:</strong> 
                             <span className={`ml-2 px-2 py-1 text-xs rounded-full ${

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Navbar from "../../Inicio/components/Navbar";
 import { obtenerReportesCompletos } from "./actions";
 import { GetUserByPerfil } from "@/app/lib/api/perfil";
 
@@ -193,7 +192,7 @@ export default function VerReportes() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Navbar />
+       
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
@@ -228,7 +227,7 @@ const enviarAdvertencia = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: 0,
-          publicacionIdPublicacion: null, // o dinámico si aplica
+          publicacionIdPublicacion: 0, // o dinámico si aplica
           perfilIdPerfil: perfilLogueado.id,
           receptorIdReceptor: advertenciaModal.perfilId, // <- aquí usamos el perfil del modal
         }),
@@ -280,7 +279,7 @@ const enviarAdvertencia = async () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      
       
       <div className="flex-1 p-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
