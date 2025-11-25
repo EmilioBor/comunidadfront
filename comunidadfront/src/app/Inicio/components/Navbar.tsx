@@ -41,10 +41,10 @@ export default function Navbar() {
       {/* LINKS */}
       <div className="flex items-center space-x-6">
         
-        <Link href="/Inicio#quienes" className="hover:underline">Quienes somos</Link>
+        <Link href="/Inicio#quienes" className="hover:underline">¿Quiénes somos?</Link>
         <Link href="/Comunidad" className="hover:underline">Comunidad</Link>
         <Link href="/Novedades" className="hover:underline">Novedades</Link>
-        <Link href="/Inicio/Empresas" className="hover:underline">Contactanos</Link>
+        <Link href="/Inicio/Empresas" className="hover:underline">Contáctanos</Link>
 
         {/* NOTIFICACIONES - SOLO SI ESTÁ LOGUEADO */}
         {user && perfilId && (

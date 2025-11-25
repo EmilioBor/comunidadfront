@@ -14,7 +14,7 @@ export default function Footer() {
         </div>
         <div>
           <h3 className="font-bold mb-2">Legal</h3>
-          <a href="/Terminos">Términos y condiciones</a>
+          <a href="/Terminos">Términos y Condiciones</a>
           <p>Política de privacidad</p>
         </div>
       </div>

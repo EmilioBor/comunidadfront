@@ -11,13 +11,13 @@ export default function Hero() {
         {/* Texto */}
         <div className="md:w-1/2 text-left mb-12 md:mb-0">
           <h1 className="text-4xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">
-            Construyendo Esperanza,
+            Construyendo esperanza,
             <br />
-            <span>Juntos cambiamos vidas</span>
+            <span>juntos cambiamos vidas ♥</span>
           </h1>
 
           <p className="text-lg md:text-xl text-gray-700 mb-8 max-w-md">
-            Un espacio donde cada aporte cuenta. Haz una diferencia hoy y ayuda a transformar vidas
+            Un espacio donde cada aporte cuenta. Haz una diferencia hoy y ayuda a transformar vidas.
           </p>
 
           <div className="flex gap-4">
@@ -35,7 +35,7 @@ export default function Hero() {
               href="/login"
               className="bg-transparent text-gray-800 px-6 py-3 border border-gray-400 rounded-lg shadow-md hover:bg-gray-100 transition duration-300 text-center"
             >
-              Unite a la comunidad
+              Unite a la Comunidad
             </Link>
           </div>
         </div>

@@ -8,14 +8,14 @@ export default function Contactanos() {
 
           <div>
             <h3 className="font-medium">Donaciones de dinero:</h3>
-            <p>De lunes a viernes de 9 a 17hs</p>
+            <p>De LUNES a VIERNES de 9 a 17 h.</p>
             <p>+54 2314 529935</p>
             <p>donaciones@comunidadsolidaria.org.ar</p>
           </div>
 
           <div className="mt-4">
             <h3 className="font-medium">Otro tipo de donaciones o consultas:</h3>
-            <p>(011) 6091-0300 de lunes a viernes de 9 a 17hs</p>
+            <p>(011) 6091-0300 de LUNES a VIERNES de 9 a 17 h.</p>
           </div>
 
           <div className="mt-6 text-sm leading-relaxed">

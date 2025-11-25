@@ -1,14 +1,9 @@
 // app/Comunidad/components/SidebarSponsor.tsx - VERSIÓN CON CSS GLOBAL
 "use client";
 
-const sponsors = [
-  "/Sponsors/BA_logo_sello-scaled.jpg",
-  "/Sponsors/camara.jpg", 
-  "/Sponsors/caritas.png",
-  "/Sponsors/fundacin_perez_companc_logo.jpg",
-  "/Sponsors/Fundacion_Bigand_5.original.png",
-  "/Sponsors/luchemos.jpg"
-];
+const count = 8; // # LOGOS
+const ext = "jpg"; // DEBEN SER DEL MISMO TIPO
+const sponsors = Array.from({ length: count }, (_, i) => `/Sponsors/sp${i + 1}.${ext}`);
 
 const Sponsor = () => {
   const duplicatedSponsors = [...sponsors, ...sponsors];

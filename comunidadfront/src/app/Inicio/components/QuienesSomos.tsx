@@ -16,13 +16,13 @@ export default function QuienesSomos() {
       {/* Contenido central */}
       <div className="relative z-10 max-w-6xl mx-auto px-8 py-20 text-center">
         <h2 className="text-3xl font-bold text-gray-800 mb-6">
-          Quienes somos
+          ¿Quiénes somos?
         </h2>
         <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-12">
-          Somos Comunidad Solidaria una plataforma que facilita la ayuda a quienes desean
+          Somos Comunidad Solidaria una plataforma que busca facilitar la ayuda a quienes desean
           contribuir mediante donaciones de bienes o servicios. Nos enfocamos en conectar
           a usuarios dispuestos a colaborar con personas y sectores vulnerables, creando
-          una red solidaria que visibiliza y satisface necesidades en la comunidad
+          una red solidaria que visibiliza y satisface necesidades en la comunidad.
         </p>
 
         <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-24">
