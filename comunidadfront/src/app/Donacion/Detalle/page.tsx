@@ -1,4 +1,4 @@
-// app/Donacion/Detalle/page.tsx - VERSIÓN SIN obtenerEstadosDonacion
+// app/Donacion/Detalle/page.tsx - VERSIÓN CON MODAL SIN FONDO OSCURO
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -180,6 +180,43 @@ export default function DonacionDetalle() {
     <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4"
          style={{ backgroundImage: "url('/background-login.png')" }}>
       
+      {/* Modal de Éxito - Sin fondo oscuro, directamente sobre el contenido */}
+      {mostrarModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          {/* Ventana modal - Sin fondo oscuro detrás */}
+          <div className="bg-[#C5E9BE] rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 border-2 border-green-300 transform transition-all duration-300 scale-100">
+            <div className="text-center">
+              {/* Icono de éxito */}
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              {/* Título y mensaje */}
+              <h3 className="text-xl font-bold text-green-700 mb-2">¡Donación Completada!</h3>
+              <p className="text-gray-700 mb-1">
+                Se guardaron correctamente <span className="font-semibold">{detalles.length}</span> detalles.
+              </p>
+              <p className="text-gray-600 text-sm mb-6">
+                Total de items: <span className="font-semibold">
+                  {detalles.reduce((sum, d) => sum + d.Cantidad, 0)}
+                </span>
+              </p>
+              
+              {/* Botón de acción */}
+              <button
+                onClick={() => router.push("/Inicio")}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition w-full transform hover:scale-105"
+              >
+                Volver al Inicio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* CONTENIDO PRINCIPAL */}
       <div className="bg-[#C5E9BE] rounded-2xl shadow-lg p-6 w-full max-w-2xl text-gray-800">
         
         {/* HEADER */}
@@ -322,25 +359,6 @@ export default function DonacionDetalle() {
             )}
           </button>
         </div>
-
-        {/* Modal */}
-        {mostrarModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-5 rounded-xl shadow-lg w-full max-w-xs text-center">
-              <div className="text-green-500 text-4xl mb-3">✅</div>
-              <h3 className="text-lg font-semibold text-green-700 mb-2">¡Donación Completada!</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Se guardaron correctamente {detalles.length} detalles.
-              </p>
-              <button
-                onClick={() => router.push("/Inicio")}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm w-full transition"
-              >
-                Volver al Inicio
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
