@@ -235,13 +235,6 @@ export default function DonacionDetalle() {
           </div>
         )}
 
-        {/* Info */}
-        <div className="bg-green-50 rounded-lg p-3 mb-4 border border-green-200">
-          <p className="text-sm text-green-700 text-center">
-            <span className="font-semibold">⚠️ Importante:</span> Cada detalle se creará automáticamente con estado "Pendiente"
-          </p>
-        </div>
-
         {/* FORM */}
         <div className="bg-white rounded-lg p-4 mb-4 border border-gray-300">
           <h3 className="font-semibold text-gray-800 mb-3">Agregar Detalle</h3>
