@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../Inicio/components/Navbar";
 import Link from "next/link";
 import { useObtenerUltimaConexion } from "@/hooks/useUltimaConexion";
+import { getPerfilNombre, GetUserByPerfil } from "@/app/lib/api/perfil";
+
 
 interface PerfilType {
   id: number;
@@ -79,6 +81,7 @@ export default function VerPerfil() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [menuAbierto, setMenuAbierto] = useState<number | null>(null);
   const [usuarioId, setUsuarioId] = useState<number>(0);
+  const [userId, setUserId] = useState<number | null>(null);
   
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +95,55 @@ export default function VerPerfil() {
 
   // Usar el hook para obtener última conexión con valores estables
   const { ultimaConexion, color } = useObtenerUltimaConexion(usuarioIdEstable, perfil?.id || perfilIdEstable);
+  
+  const handleChatClick = async (pub: Publicacion) => {
+      try {
+        const me = await fetch("/api/user/me").then((r) => r.json());
+        setUserId(me.id);
+        
+        const perfilData = await GetUserByPerfil(me.id);
+        setPerfil(perfilData);
+  
+        const perfilIdActual = perfilData.id;
+
+        const perfilReceptor = await getPerfilNombre(pub.nombrePerfilIdPerfil)
+
+
+        const receptorId = perfilReceptor.id;
+        console.log("Esto es lo que tiene:", perfilReceptor.id)
+        
+        if (!perfilIdActual || !receptorId) {
+          console.error("Faltan IDs de perfil/receptor");
+          return;
+        }
+  
+        const body = {
+          id: 0,
+          publicacionIdPublicacion: pub.id,
+          perfilIdPerfil: perfilIdActual,
+          receptorIdReceptor: receptorId,
+        };
+  
+        const resChat = await fetch(
+          "https://localhost:7168/api/Chat/api/v1/agrega/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        );
+  
+        if (!resChat.ok) {
+          console.error("Error al crear/obtener chat");
+          return;
+        }
+  
+        const chat = await resChat.json();
+        router.push(`/Chat/${chat.id}`);
+      } catch (err) {
+        console.error("Error en handleChatClick:", err);
+      }
+    };
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {
@@ -356,12 +408,6 @@ export default function VerPerfil() {
             >
                 Donaciones
             </Link>
-            <Link
-              href="/Perfil/Chat"
-              className="bg-gray-300 hover:bg-gray-400 py-2 rounded-lg text-center text-black transition-colors shadow-sm hover:shadow-md"
-            >
-              Chats
-            </Link>
           </div>
         </aside>
 
@@ -534,12 +580,12 @@ export default function VerPerfil() {
                         >
                             Donar
                         </Link>
-                        <Link
-                            href={`/Perfil/Chat?perfil=${pub.nombrePerfilIdPerfil}`}
-                            className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-blue-500 transition"
+                        <button
+                        onClick={() => handleChatClick(pub)}
+                        className="flex-1 bg-[#7DB575] text-white py-2 rounded-lg text-center font-semibold hover:bg-green-500 transition"
                         >
-                            Chat
-                        </Link>
+                        Chat
+                        </button>
                       </div>
                     </div>
                   </div>

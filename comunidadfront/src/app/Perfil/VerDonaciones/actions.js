@@ -15,7 +15,7 @@ export async function obtenerDonacionesDePerfil(perfilId) {
       throw new Error('ID de perfil no proporcionado');
     }
 
-    // Obtener el perfil usando el ID
+    // Obtener el perfil usando el ID - usar getPerfilId que SÍ existe
     const perfilData = await getPerfilId(perfilId);
     console.log("✅ Perfil obtenido:", perfilData);
 
@@ -30,16 +30,32 @@ export async function obtenerDonacionesDePerfil(perfilId) {
     const todasLasDonaciones = await getDonaciones();
     console.log("📦 Total de donaciones obtenidas:", todasLasDonaciones.length);
 
+    // DEBUG: Mostrar algunas donaciones para verificar estructura
+    console.log("🔍 Estructura de las primeras 3 donaciones:");
+    todasLasDonaciones.slice(0, 3).forEach((donacion, index) => {
+      console.log(`Donación ${index + 1}:`, {
+        id: donacion.id,
+        nombrePerfilDonanteIdPerfilDonante: donacion.nombrePerfilDonanteIdPerfilDonante,
+        nombrePerfilIdPerfil: donacion.nombrePerfilIdPerfil,
+        nombreDonacionTipoIdDonacionTipo: donacion.nombreDonacionTipoIdDonacionTipo,
+        descripcion: donacion.descripcion
+      });
+    });
+
     // Filtrar donaciones tanto ENVIADAS como RECIBIDAS por el perfil
     const donacionesDelPerfil = todasLasDonaciones.filter(donacion => {
+      // Usar comparación segura para evitar problemas con undefined
       const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === nombrePerfil;
       const esDestinatario = donacion.nombrePerfilIdPerfil === nombrePerfil;
       
-      if (esDonante) {
-        console.log("✅ Donación ENVIADA:", donacion.id, donacion.descripcion);
-      }
-      if (esDestinatario) {
-        console.log("✅ Donación RECIBIDA:", donacion.id, donacion.descripcion);
+      if (esDonante || esDestinatario) {
+        console.log(`✅ Donación ${donacion.id}:`, {
+          descripcion: donacion.descripcion,
+          esDonante: esDonante,
+          esDestinatario: esDestinatario,
+          donante: donacion.nombrePerfilDonanteIdPerfilDonante,
+          destinatario: donacion.nombrePerfilIdPerfil
+        });
       }
       
       return esDonante || esDestinatario;
@@ -49,7 +65,7 @@ export async function obtenerDonacionesDePerfil(perfilId) {
 
     return {
       success: true,
-      data: formatearDonaciones(donacionesDelPerfil, nombrePerfil),
+      data: donacionesDelPerfil, // NO formatear aquí, dejar los datos crudos
       perfil: perfilData,
       message: donacionesDelPerfil.length === 0 ? 
         "No se encontraron donaciones para este perfil" : 
@@ -62,11 +78,13 @@ export async function obtenerDonacionesDePerfil(perfilId) {
     return {
       success: false,
       data: [],
+      perfil: null,
       error: error.message,
       message: "Error al cargar las donaciones del perfil"
     };
   }
 }
+
 
 /**
  * Formatea las donaciones para el frontend
