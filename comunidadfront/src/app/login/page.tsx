@@ -53,7 +53,9 @@ const handleSubmit = async (e: React.FormEvent) => {
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               placeholder="ejemplo@correo.com"
               required
             />
@@ -66,7 +68,9 @@ const handleSubmit = async (e: React.FormEvent) => {
               name="password"
               value={password}
               onChange={(e) => setContaseña(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               placeholder="********"
               required
             />
@@ -83,7 +87,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         </form>
 
         <p className="text-center mt-4 text-sm">
-          ¿Todavía no te registraste?{" "}
+          ¿Todavía no tenes cuenta?{" "}
           <a href="/Registrarse" className="text-gray-700 font-medium hover:underline">
             Registrarse
           </a>

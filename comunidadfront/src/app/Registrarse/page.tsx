@@ -60,8 +60,8 @@ export default function Registrarse() {
       >
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.png" alt="logo" className="w-12 h-12 mb-2" />
-          <h1 className="text-2xl font-bold">Te damos la bienvenida a</h1>
-          <h2 className="text-3xl font-[cursive]">Comunidad Solidaria</h2>
+          <h1 className="text-2xl">Te damos la bienvenida a</h1>
+          <h2 className="text-3xl font-bold">Comunidad Solidaria</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
@@ -73,7 +73,9 @@ export default function Registrarse() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"  
               placeholder="ejemplo@correo.com"
               required
             />
@@ -111,7 +113,9 @@ export default function Registrarse() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               placeholder="********"
               required
             />
@@ -124,7 +128,9 @@ export default function Registrarse() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               placeholder="********"
               required
             />

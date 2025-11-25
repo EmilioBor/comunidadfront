@@ -1,9 +1,15 @@
 import Contactanos from "../components/Contactanos";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
+import Sponsor from "../components/Sponsors";
 
 // Asumo que el componente Contactanos manejará la información de contacto y el corazón
 // Para la cabecera verde de "Empresas y Organizaciones" usaremos un div simple.
+
+const count = 8; // # LOGOS
+const ext = "jpg"; // DEBEN SER DEL MISMO TIPO
+const sponsors = Array.from({ length: count }, (_, i) => `/Sponsors/sp${i + 1}.${ext}`);
+const duplicatedSponsors = [...sponsors, ...sponsors];
 
 export default function Empresas() {
   return (
@@ -52,12 +58,8 @@ export default function Empresas() {
                 <h3 className="text-lg font-bold text-gray-800 mb-6">
                 Las empresas y organizaciones que nos acompañan son:
                 </h3>
-
-                <img
-                src="/carrito.png"
-                alt="Quienes somos"
-                className="w-[full]] h-[full] object-cover rounded-lg "
-            />
+                <Sponsor sponsors={duplicatedSponsors} />
+               
           </div>
         </section>
 

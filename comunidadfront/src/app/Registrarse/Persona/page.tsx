@@ -86,8 +86,8 @@ export default function Empresas() {
       >
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.png" alt="logo" className="w-12 h-12 mb-2" />
-          <h1 className="text-2xl font-bold">Te damos la bienvenida a</h1>
-          <h2 className="text-3xl font-[cursive]">Comunidad Solidaria</h2>
+          <h1 className="text-2xl">Te damos la bienvenida a</h1>
+          <h2 className="text-3xl font-bold">Comunidad Solidaria</h2>
         </div>
 
         <form
@@ -101,7 +101,9 @@ export default function Empresas() {
               type="text"
               value={razonSocial}
               onChange={(e) => setRazonSocial(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               required
             />
           </div>
@@ -111,7 +113,9 @@ export default function Empresas() {
               type="text"
               value={cbu}
               onChange={(e) => setCbu(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               required
             />
           </div>
@@ -121,7 +125,9 @@ export default function Empresas() {
               type="text"
               value={cuit}
               onChange={(e) => setCuit(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               required
             />
           </div>
@@ -131,7 +137,9 @@ export default function Empresas() {
               type="text"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               required
             />
           </div>
@@ -152,7 +160,7 @@ export default function Empresas() {
               required
             >
               <option value="" disabled>
-                Elegí una localidad...
+                Seleccione una localidad...
               </option>
 
               {localidades.map((loc: any) => (
@@ -170,7 +178,9 @@ export default function Empresas() {
               type="text"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 
+               bg-white text-black placeholder:text-gray-400
+               focus:outline-none focus:ring-2 focus:ring-green-400"
               required
             />
           </div>
