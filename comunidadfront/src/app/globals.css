@@ -1,3 +1,27 @@
+/* Animación para el scroll vertical */
+@keyframes scrollVerticalSlow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll-vertical-slow {
+  animation: scrollVerticalSlow 45s linear infinite;
+}
+
+/* Animación para el scroll horizontal */
+@keyframes scroll-horizontal {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-scroll-horizontal {
+  animation: scroll-horizontal 30s linear infinite;
+}
+
 @import "tailwindcss";
 
 :root {
@@ -32,30 +56,6 @@ body {
 .text-bold {
   font-weight: bold;
   color: #2b6cb0;  /* Puedes poner un color específico */
-}
-
-/* Animación para el scroll vertical */
-@keyframes scrollVerticalSlow {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-50%);
-  }
-}
-
-.animate-scroll-vertical-slow {
-  animation: scrollVerticalSlow 45s linear infinite;
-}
-
-/* Animación para el scroll horizontal */
-@keyframes scroll-horizontal {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-scroll-horizontal {
-  animation: scroll-horizontal 30s linear infinite;
 }
 
 /* Forzar color de texto negro en el select y en las opciones */

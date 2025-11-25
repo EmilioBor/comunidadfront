@@ -9,7 +9,6 @@ import Sponsor from "../components/Sponsors";
 const count = 8; // # LOGOS
 const ext = "jpg"; // DEBEN SER DEL MISMO TIPO
 const sponsors = Array.from({ length: count }, (_, i) => `/Sponsors/sp${i + 1}.${ext}`);
-const duplicatedSponsors = [...sponsors, ...sponsors];
 
 export default function Empresas() {
   return (
@@ -58,7 +57,7 @@ export default function Empresas() {
                 <h3 className="text-lg font-bold text-gray-800 mb-6">
                 Las empresas y organizaciones que nos acompañan son:
                 </h3>
-                <Sponsor sponsors={duplicatedSponsors} />
+                <Sponsor sponsors={sponsors} />
                
           </div>
         </section>
