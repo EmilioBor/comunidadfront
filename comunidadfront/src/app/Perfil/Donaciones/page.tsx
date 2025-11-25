@@ -1,40 +1,41 @@
-// app/Perfil/Donaciones/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Navbar from "@/app/Inicio/components/Navbar";
-import { GetUserByPerfil, getPerfilId } from "@/app/lib/api/perfil";
+import { GetUserByPerfil } from "@/app/lib/api/perfil";
+import { getDonaciones } from "@/app/lib/api/donacionApi";
 
-// Interfaces actualizadas según el nuevo backend
 interface Donacion {
   id: number;
-  fechaHora: string;
-  perfilIdPerfil: number;
-  donacionTipoIdDonacionTipo: number;
+  fecha: string;
+  monto: string;
+  destinatario: string;
+  cbu: string;
+  calificacion: string;
   descripcion: string;
-  perfilDonanteIdPerfilDonante: number;
-  publicacionIdPublicacion?: number;
+  estado: string;
+  tipo: string;
+  donante: string;
+  categoria: string;
+  fechaHora?: string;
   estadoActual?: string;
-  nombrePerfilIdPerfil?: string;
-  nombrePerfilDonanteIdPerfilDonante?: string;
-  nombreDonacionTipoIdDonacionTipo?: string;
-  nombrePublicacionIdPublicacion?: string;
+  esPendiente?: boolean;
 }
 
-interface DonacionDetalleEstado {
+interface DetalleDonacion {
   id: number;
   descripcion: string;
-  donacionIdDonacion: number;
+  nombreDonacionIdDonacion: string;
   cantidad: number;
+  nombreDonacionEstadoIdDonacionEstado: string;
 }
 
 interface DonacionEstado {
   id: number;
   nombre: string;
-  donacionIdDonacion: number;
+  nombreDonacionIdDonacion: string;
 }
 
 interface PerfilType {
@@ -63,7 +64,7 @@ const TIPOS_DONACIONES = [
 const ESTADOS_DONACION = {
   PENDIENTE: "Pendiente",
   CANCELADO: "Cancelado",
-  EN_PROCESO: "En Proceso",
+  EN_PROCESO: "En Proceso", 
   PARCIALMENTE_CUMPLIDO: "Parcialmente Cumplido",
   CUMPLIDO: "Cumplido"
 };
@@ -76,6 +77,7 @@ const formatearFecha = (fecha: string) => {
     const fechaObj = new Date(fecha);
     
     if (isNaN(fechaObj.getTime())) {
+      console.warn("Fecha inválida:", fecha);
       return "Fecha inválida";
     }
     
@@ -85,6 +87,7 @@ const formatearFecha = (fecha: string) => {
       day: 'numeric'
     });
   } catch (error) {
+    console.error("Error formateando fecha:", error, "Fecha original:", fecha);
     return "Fecha inválida";
   }
 };
@@ -96,187 +99,192 @@ const formatearMonto = (monto: any) => {
   return `$${numero.toLocaleString('es-AR')}`;
 };
 
-// SERVICIOS API ACTUALIZADOS
-async function getDonaciones(): Promise<Donacion[]> {
-  try {
-    console.log("🔍 Obteniendo todas las donaciones...");
-    const response = await fetch('https://localhost:7168/api/Donacion/api/v1/donacions');
-    if (!response.ok) {
-      console.error(`Error ${response.status} al obtener donaciones`);
-      throw new Error('Error al obtener donaciones');
-    }
-    const data = await response.json();
-    console.log("📦 TODAS LAS DONACIONES DEL SISTEMA:", data);
-    return data;
-  } catch (error) {
-    console.error('Error en getDonaciones:', error);
-    return [];
-  }
-}
-
+// SERVICIOS API PARA ESTADOS - CORREGIDA
 async function getEstadosDonacion(): Promise<DonacionEstado[]> {
   try {
-    const response = await fetch('https://localhost:7168/api/DonacionEstado/api/v1/detalleDonacionTipos');
-    if (!response.ok) throw new Error('Error al obtener estados');
-    return await response.json();
+    console.log('🔄 Obteniendo estados de donación desde el servidor...');
+    const response = await fetch('https://localhost:7168/api/DonacionEstado/api/v1/detalleDonacionTipos', {
+      cache: 'no-cache',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    if (!response.ok) throw new Error(`Error ${response.status} al obtener estados`);
+    
+    const estados = await response.json();
+    console.log('📊 Estados obtenidos del servidor:', estados);
+    
+    return estados;
   } catch (error) {
     console.error('Error en getEstadosDonacion:', error);
     return [];
   }
 }
 
-async function crearEstadoDonacion(donacionId: number, nombreEstado: string): Promise<any> {
+// Función CORREGIDA para obtener el estado actual de una donación - USA EL ID
+async function obtenerEstadoActualDonacion(donacionId: number, donaciones: any[]): Promise<string> {
   try {
+    const estados = await getEstadosDonacion();
+    
+    // Encontrar la descripción de la donación específica
+    const donacion = donaciones.find(d => d.id === donacionId);
+    
+    if (!donacion) {
+      console.log(`❌ No se encontró la donación con ID: ${donacionId}`);
+      return ESTADOS_DONACION.PENDIENTE;
+    }
+    
+    const descripcionDonacion = donacion.descripcion;
+    console.log(`🔍 Buscando estado MÁS RECIENTE para donación ID: ${donacionId} - "${descripcionDonacion}"`);
+    
+    // Buscar estados que coincidan con la descripción de ESTA donación específica
+    const estadosDonacion = estados.filter((estado: DonacionEstado) => {
+      return estado.nombreDonacionIdDonacion === descripcionDonacion;
+    });
+    
+    console.log(`📊 Estados encontrados para donación ${donacionId}:`, estadosDonacion.length);
+    
+    if (estadosDonacion.length === 0) {
+      console.log(`❌ No se encontró estado para donación ID: ${donacionId}`);
+      return ESTADOS_DONACION.PENDIENTE;
+    }
+    
+    // ORDENAR POR ID DESCENDENTE para tomar el MÁS RECIENTE
+    const estadosOrdenados = estadosDonacion.sort((a: DonacionEstado, b: DonacionEstado) => b.id - a.id);
+    const estadoMasReciente = estadosOrdenados[0];
+    
+    console.log(`🎯 Estado MÁS RECIENTE para donación ${donacionId}:`, estadoMasReciente.nombre);
+    
+    return estadoMasReciente.nombre || ESTADOS_DONACION.PENDIENTE;
+  } catch (error) {
+    console.error('Error obteniendo estado de donación:', error);
+    return ESTADOS_DONACION.PENDIENTE;
+  }
+}
+
+// Función CORREGIDA para crear un nuevo estado de donación - SOLUCIÓN PARA ERROR DE LLAVE FORÁNEA
+async function crearEstadoDonacion(donacionId: number, descripcionDonacion: string, nombreEstado: string) {
+  try {
+    console.log('📤 Creando estado para donación ID:', donacionId, 'Descripción:', descripcionDonacion, 'estado:', nombreEstado);
+    
+    // ESTRUCTURA CORREGIDA: El backend necesita el ID numérico para la FK y la descripción para búsquedas
+    const estadoData = {
+      id: 0,
+      nombre: nombreEstado,
+      donacionIdDonacion: donacionId, // ID numérico para la llave foránea
+      nombreDonacionIdDonacion: descripcionDonacion // Descripción para compatibilidad con búsquedas
+    };
+
+    console.log('📦 Creando nuevo estado:', estadoData);
+
     const response = await fetch('https://localhost:7168/api/DonacionEstado/api/v1/agrega/detalleDonacionTipo', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        nombre: nombreEstado,
-        donacionIdDonacion: donacionId
-      })
+      body: JSON.stringify(estadoData)
     });
 
-    if (!response.ok) throw new Error('Error al crear estado');
-    return await response.json();
+    console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error detallado del servidor:', errorText);
+      throw new Error(`Error al crear estado: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Estado creado exitosamente:', result);
+    
+    return result;
+    
   } catch (error) {
-    console.error('Error en crearEstadoDonacion:', error);
+    console.error('💥 Error en crearEstadoDonacion:', error);
     throw error;
   }
 }
 
-async function getDetallesDonacion(): Promise<DonacionDetalleEstado[]> {
+// Función para obtener TODOS los detalles de donación
+async function obtenerTodosLosDetallesDonacion(): Promise<DetalleDonacion[]> {
   try {
-    const response = await fetch('https://localhost:7168/api/v1/DetalleDonacion');
-    if (!response.ok) throw new Error('Error al obtener detalles');
-    return await response.json();
-  } catch (error) {
-    console.error('Error en getDetallesDonacion:', error);
-    return [];
-  }
-}
-
-// FUNCIONES AUXILIARES ACTUALIZADAS
-async function obtenerEstadoActualDonacion(donacionId: number): Promise<string> {
-  try {
-    const estados = await getEstadosDonacion();
-    console.log(`🔍 Buscando estado para donación ${donacionId}. Total estados:`, estados.length);
+    const response = await fetch(`https://localhost:7168/api/v1/DetalleDonacion`);
     
-    const estadosDonacion = estados.filter((estado: DonacionEstado) => estado.donacionIdDonacion === donacionId);
-    console.log(`📊 Estados encontrados para donación ${donacionId}:`, estadosDonacion.length);
-    
-    if (estadosDonacion.length === 0) {
-      return 'Sin estado';
+    if (!response.ok) {
+      throw new Error(`Error al obtener detalles: ${response.status}`);
     }
     
-    // Ordenar por ID descendente y tomar el más reciente
-    const estadoMasReciente = estadosDonacion.sort((a: DonacionEstado, b: DonacionEstado) => b.id - a.id)[0];
-    console.log(`🎯 Estado más reciente para donación ${donacionId}:`, estadoMasReciente.nombre);
+    const detalles = await response.json();
     
-    return estadoMasReciente.nombre || 'Sin estado';
-  } catch (error) {
-    console.error('Error obteniendo estado de donación:', error);
-    return 'Error';
-  }
-}
-
-// FUNCIÓN SIMPLIFICADA: Obtener todas las donaciones del perfil
-async function obtenerDonacionesDelPerfil(perfilId: number, tipoVista: "enviadas" | "recibidas"): Promise<any[]> {
-  try {
-    console.log(`🔍 Obteniendo donaciones para perfil ${perfilId}, vista: ${tipoVista}`);
+    console.log("📦 Total de detalles cargados:", detalles.length);
     
-    const todasLasDonaciones = await getDonaciones();
-    console.log("📦 TODAS LAS DONACIONES DEL SISTEMA:", data);
-    
-    if (todasLasDonaciones.length === 0) {
-      console.log("❌ No hay donaciones en el sistema");
+    if (Array.isArray(detalles)) {
+      return detalles;
+    } else if (detalles && typeof detalles === 'object') {
+      return [detalles];
+    } else {
       return [];
     }
-
-    // DEBUG: Mostrar información de las primeras donaciones
-    todasLasDonaciones.slice(0, 3).forEach((donacion, index) => {
-      console.log(`🔍 Donación ${index + 1}:`, {
-        id: donacion.id,
-        fechaHora:donacion.fechaHora,
-        nombrePerfilIdPerfil: donacion.nombrePerfilIdPerfil,
-        nombreDonacionTipoIdDonacionTipo: donacion.donacionTipoIdDonacionTipo,
-        descripcion:donacion.descripcion,
-        nombrePerfilDonanteIdPerfilDonante: donacion.nombrePerfilDonanteIdPerfilDonante,
-        nombrePublicacionIdPublicacion: donacion.nombrePublicacionIdPublicacion,
-      });
-    });
-
-    // Filtrar según el tipo de vista
-    let donacionesFiltradas: Donacion[] = [todasLasDonaciones[0]]; // Inicializar para evitar error de variable no definida
-    
-    const perfil= await getPerfilId (perfilId) 
-    if (tipoVista === "enviadas") {
-      // Donaciones ENVIADAS por este perfil (donde el perfil es el donante)
-        donacionesFiltradas = todasLasDonaciones.filter(
-          d => d.perfilDonanteIdPerfilDonante === perfil.razonSocial
-        );
-
-      console.log(`✅ Donaciones ENVIADAS por perfil ${perfilId}: ${donacionesFiltradas.length}`);
-    } else {
-      // Donaciones RECIBIDAS por este perfil (donde el perfil es el receptor)
-        donacionesFiltradas = todasLasDonaciones.filter(
-          d => d.perfilIdPerfil === perfil.id
-        );
-
-      console.log(`✅ Donaciones RECIBIDAS por perfil ${perfilId}: ${donacionesFiltradas.length}`);
-    }
-
-    // Obtener estados para todas las donaciones filtradas
-    console.log("🔄 Obteniendo estados para las donaciones...");
-    const donacionesConEstados = await Promise.all(
-      donacionesFiltradas.map(async (donacion: Donacion) => {
-        const estadoActual = await obtenerEstadoActualDonacion(donacion.id);
-        
-        const donacionFormateada = {
-          id: donacion.id,
-          fecha: formatearFecha(donacion.fechaHora),
-          monto: formatearMonto(donacion.descripcion),
-          destinatario: donacion.nombrePerfilIdPerfil || "Destinatario no especificado",
-          cbu: "No aplica para donaciones en especie",
-          calificacion: "No calificada",
-          descripcion: donacion.descripcion || `Donación de ${donacion.nombreDonacionTipoIdDonacionTipo}`,
-          estado: estadoActual,
-          tipo: donacion.nombreDonacionTipoIdDonacionTipo || "Donación en especie",
-          donante: donacion.nombrePerfilDonanteIdPerfilDonante || "Donante no especificado",
-          categoria: donacion.nombreDonacionTipoIdDonacionTipo,
-          fechaHora: donacion.fechaHora,
-          estadoActual: estadoActual,
-          esPendiente: estadoActual === ESTADOS_DONACION.PENDIENTE,
-          procesada: estadoActual !== ESTADOS_DONACION.PENDIENTE,
-          // Datos originales para debug
-          perfilIdPerfil: donacion.perfilIdPerfil,
-          perfilDonanteIdPerfilDonante: donacion.perfilDonanteIdPerfilDonante
-        };
-
-        console.log(`📋 Donación formateada ${donacion.id}:`, {
-          id: donacionFormateada.id,
-          tipoVista,
-          perfilIdPerfil: donacionFormateada.perfilIdPerfil,
-          perfilDonanteIdPerfilDonante: donacionFormateada.perfilDonanteIdPerfilDonante,
-          estado: donacionFormateada.estado,
-          esPendiente: donacionFormateada.esPendiente
-        });
-
-        return donacionFormateada;
-      })
-    );
-
-    console.log(`🎯 Total donaciones formateadas: ${donacionesConEstados.length}`);
-    return donacionesConEstados;
   } catch (error) {
-    console.error('Error obteniendo donaciones del perfil:', error);
-    return [];
+    console.error("Error obteniendo detalles de donación:", error);
+    throw error;
   }
 }
 
+// Función CORREGIDA para filtrar detalles - USA EL ID DE DONACIÓN
+function filtrarDetallesPorDonacion(detalles: DetalleDonacion[], donaciones: any[], donacionId: number): DetalleDonacion[] {
+  console.log(`🔍 Buscando detalles para donación ID: ${donacionId}`);
+  
+  // Primero, encontrar la descripción de la donación específica
+  const donacion = donaciones.find(d => d.id === donacionId);
+  
+  if (!donacion) {
+    console.log(`❌ No se encontró la donación con ID: ${donacionId}`);
+    return [];
+  }
+  
+  const descripcionDonacion = donacion.descripcion;
+  console.log(`📝 Descripción de la donación ${donacionId}: "${descripcionDonacion}"`);
+  
+  // Filtrar detalles que coincidan EXACTAMENTE con esta descripción
+  const detallesFiltrados = detalles.filter(detalle => {
+    const coincideExacto = detalle.nombreDonacionIdDonacion === descripcionDonacion;
+    
+    if (coincideExacto) {
+      console.log(`✅ Detalle encontrado: ID=${detalle.id}, Descripción="${detalle.descripcion}", Donación="${detalle.nombreDonacionIdDonacion}"`);
+    }
+    
+    return coincideExacto;
+  });
+  
+  console.log(`📊 Detalles encontrados para donación ${donacionId}: ${detallesFiltrados.length}`);
+  
+  return detallesFiltrados;
+}
+
+// Función CORREGIDA para procesar donación y actualizar estado
+const procesarDonacion = async (donacion: any, accion: 'aceptar' | 'rechazar') => {
+  try {
+    console.log('🔄 Procesando donación ID:', donacion.id, 'Descripción:', donacion.descripcion, 'Acción:', accion);
+    
+    const nuevoEstado = accion === 'aceptar' ? ESTADOS_DONACION.CUMPLIDO : ESTADOS_DONACION.CANCELADO;
+    console.log('🎯 Nuevo estado a aplicar:', nuevoEstado);
+
+    // IMPORTANTE: Pasamos tanto el ID como la descripción para solucionar el error de llave foránea
+    const resultado = await crearEstadoDonacion(donacion.id, donacion.descripcion, nuevoEstado);
+    console.log('✅ Estado creado exitosamente para donación:', donacion.id);
+    
+    return resultado;
+    
+  } catch (error) {
+    console.error('💥 Error en procesarDonacion:', error);
+    throw error;
+  }
+};
+
 export default function Donaciones() {
-  const [donaciones, setDonaciones] = useState<any[]>([]);
+  const [donaciones, setDonaciones] = useState<Donacion[]>([]);
   const [perfil, setPerfil] = useState<PerfilType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -287,92 +295,182 @@ export default function Donaciones() {
   
   // Estados para el modal de detalles
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [donacionSeleccionada, setDonacionSeleccionada] = useState<any | null>(null);
-  const [detallesDonacion, setDetallesDonacion] = useState<DonacionDetalleEstado[]>([]);
+  const [donacionSeleccionada, setDonacionSeleccionada] = useState<Donacion | null>(null);
+  const [detallesDonacion, setDetallesDonacion] = useState<DetalleDonacion[]>([]);
   const [cargandoDetalles, setCargandoDetalles] = useState(false);
   const [errorDetalles, setErrorDetalles] = useState("");
+  const [todosLosDetalles, setTodosLosDetalles] = useState<DetalleDonacion[]>([]);
 
   // Estados para gestión de donaciones pendientes
   const [modalGestionAbierto, setModalGestionAbierto] = useState(false);
-  const [donacionPendiente, setDonacionPendiente] = useState<any | null>(null);
-  const [detallesPendientes, setDetallesPendientes] = useState<DonacionDetalleEstado[]>([]);
+  const [donacionPendiente, setDonacionPendiente] = useState<Donacion | null>(null);
+  const [detallesPendientes, setDetallesPendientes] = useState<DetalleDonacion[]>([]);
   const [detallesSeleccionados, setDetallesSeleccionados] = useState<number[]>([]);
   const [procesando, setProcesando] = useState(false);
 
   const router = useRouter();
 
-  // Cargar datos principales
+  // Cargar todos los detalles al montar el componente
   useEffect(() => {
-    async function cargarDatos() {
+    async function cargarTodosLosDetalles() {
       try {
-        setLoading(true);
-        setError("");
-        setInfo("");
-
-        console.log("🔄 Cargando datos del perfil y donaciones...");
-
-        // Obtener usuario
-        const me = await fetch("/api/user/me").then((r) => r.json());
-        console.log("✅ Usuario obtenido:", me);
-
-        if (!me || !me.id) {
-          throw new Error("Usuario no autenticado");
-        }
-
-        // Obtener perfil
-        const perfilData = await GetUserByPerfil(me.id);
-        console.log("✅ Perfil obtenido:", perfilData);
-
-        if (!perfilData) {
-          router.push("/Perfil/Crear");
-          return;
-        }
-
-        setPerfil(perfilData);
-
-        // Cargar todas las donaciones del perfil
-        console.log("📋 Cargando todas las donaciones del perfil...");
-        const todasLasDonaciones = await obtenerDonacionesDelPerfil(perfilData.id, tipoVista);
-        setDonaciones(todasLasDonaciones);
-        console.log("✅ Todas las donaciones cargadas:", todasLasDonaciones.length);
-
-        // Mostrar información
-        if (todasLasDonaciones.length === 0) {
-          setInfo(`No se encontraron donaciones ${tipoVista === "enviadas" ? "enviadas" : "recibidas"} por este perfil`);
-        } else {
-          const pendientesCount = todasLasDonaciones.filter(d => d.esPendiente).length;
-          if (tipoVista === "recibidas" && pendientesCount > 0) {
-            setInfo(`Tienes ${pendientesCount} donación(es) pendiente(s) de revisión`);
-          } else {
-            setInfo(`Se encontraron ${todasLasDonaciones.length} donaciones ${tipoVista === "enviadas" ? "enviadas" : "recibidas"}`);
-          }
-        }
-
-      } catch (err: any) {
-        console.error("Error cargando donaciones:", err);
-        setError(err.message || "Error al cargar los datos");
-      } finally {
-        setLoading(false);
+        console.log("🔄 Cargando todos los detalles de donación...");
+        const detalles = await obtenerTodosLosDetallesDonacion();
+        setTodosLosDetalles(detalles);
+      } catch (error) {
+        console.error("Error cargando todos los detalles:", error);
       }
     }
 
-    cargarDatos();
+    cargarTodosLosDetalles();
+  }, []);
+
+  // Cargar datos principales - ESTRATEGIA CORREGIDA
+  const cargarDatosPrincipales = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setInfo("");
+
+      console.log("🔄 Cargando datos del perfil y donaciones...");
+
+      // Obtener usuario
+      const me = await fetch("/api/user/me").then((r) => r.json());
+      console.log("✅ Usuario obtenido:", me);
+
+      if (!me || !me.id) {
+        throw new Error("Usuario no autenticado");
+      }
+
+      // Obtener perfil
+      const perfilData = await GetUserByPerfil(me.id);
+      console.log("✅ Perfil obtenido:", perfilData);
+
+      if (!perfilData) {
+        router.push("/Perfil/Crear");
+        return;
+      }
+
+      setPerfil(perfilData);
+
+      // Obtener todas las donaciones
+      let todasLasDonaciones = [];
+      try {
+        todasLasDonaciones = await getDonaciones();
+        console.log("📦 Total de donaciones:", todasLasDonaciones.length);
+      } catch (err: any) {
+        console.warn("⚠️ No se pudieron obtener las donaciones:", err.message);
+        setInfo("No se pudieron cargar las donaciones del servidor");
+        todasLasDonaciones = [];
+      }
+
+      // Filtrar donaciones según el tipo de vista seleccionado - CORREGIDO
+      let donacionesFiltradas = [];
+      if (tipoVista === "enviadas") {
+        // Para donaciones enviadas: mostrar donde el perfil actual es el DONANTE
+        donacionesFiltradas = todasLasDonaciones.filter(donacion => {
+          const esDonante = donacion.nombrePerfilDonanteIdPerfilDonante === perfilData.razonSocial;
+          console.log(`🔍 Donación ${donacion.id}: donante="${donacion.nombrePerfilDonanteIdPerfilDonante}", mi perfil="${perfilData.razonSocial}", esDonante=${esDonante}`);
+          return esDonante;
+        });
+        console.log(`✅ Donaciones enviadas: ${donacionesFiltradas.length}`);
+      } else {
+        // Para donaciones recibidas: mostrar donde el perfil actual es el DESTINATARIO
+        donacionesFiltradas = todasLasDonaciones.filter(donacion => {
+          const esDestinatario = donacion.nombrePerfilIdPerfil === perfilData.razonSocial;
+          console.log(`🔍 Donación ${donacion.id}: destinatario="${donacion.nombrePerfilIdPerfil}", mi perfil="${perfilData.razonSocial}", esDestinatario=${esDestinatario}`);
+          return esDestinatario;
+        });
+        console.log(`✅ Donaciones recibidas: ${donacionesFiltradas.length}`);
+      }
+
+      // Obtener estados para cada donación y formatear
+      console.log("🔄 Obteniendo estados para las donaciones...");
+      const donacionesConEstados = await Promise.all(
+        donacionesFiltradas.map(async (donacion) => {
+          // IMPORTANTE: Pasar tanto el ID como el array de donaciones
+          const estadoActual = await obtenerEstadoActualDonacion(donacion.id, donacionesFiltradas);
+          
+          // Determinar si es pendiente basado en el estado actual
+          // Para donaciones enviadas, no mostramos como "pendientes" porque no podemos gestionarlas
+          const esPendiente = tipoVista === "recibidas" && estadoActual === ESTADOS_DONACION.PENDIENTE;
+          
+          const donacionFormateada = {
+            id: donacion.id,
+            fecha: formatearFecha(donacion.fechaHora),
+            monto: formatearMonto(donacion.descripcion),
+            destinatario: donacion.nombrePerfilIdPerfil || "Destinatario no especificado",
+            cbu: "No aplica para donaciones en especie",
+            calificacion: "No calificada",
+            descripcion: donacion.descripcion || `Donación de ${donacion.nombreDonacionTipoIdDonacionTipo}`,
+            estado: estadoActual,
+            tipo: donacion.nombreDonacionTipoIdDonacionTipo || "Donación en especie",
+            donante: donacion.nombrePerfilDonanteIdPerfilDonante || perfilData.razonSocial,
+            categoria: donacion.nombreDonacionTipoIdDonacionTipo,
+            fechaHora: donacion.fechaHora,
+            estadoActual: estadoActual,
+            esPendiente: esPendiente
+          };
+
+          console.log(`📋 Donación ${donacion.id} - "${donacion.descripcion}":`, {
+            estado: estadoActual,
+            esPendiente: esPendiente,
+            tipoVista: tipoVista
+          });
+
+          return donacionFormateada;
+        })
+      );
+
+      setDonaciones(donacionesConEstados);
+
+      // Mostrar información según el tipo de vista
+      if (tipoVista === "recibidas") {
+        const pendientesCount = donacionesConEstados.filter(d => d.esPendiente).length;
+        if (pendientesCount > 0) {
+          setInfo(`Tienes ${pendientesCount} donación(es) pendiente(s) de revisión`);
+        } else if (donacionesFiltradas.length === 0) {
+          setInfo("No se encontraron donaciones recibidas por este perfil");
+        } else {
+          setInfo("No hay donaciones pendientes de revisión");
+        }
+      } else {
+        // Para donaciones enviadas
+        if (donacionesFiltradas.length === 0) {
+          setInfo("No se encontraron donaciones realizadas por este perfil");
+        } else {
+          const pendientesCount = donacionesConEstados.filter(d => d.estadoActual === ESTADOS_DONACION.PENDIENTE).length;
+          const completadasCount = donacionesConEstados.filter(d => d.estadoActual === ESTADOS_DONACION.CUMPLIDO).length;
+          const canceladasCount = donacionesConEstados.filter(d => d.estadoActual === ESTADOS_DONACION.CANCELADO).length;
+          
+          setInfo(`Has realizado ${donacionesFiltradas.length} donación(es): ${completadasCount} completadas, ${pendientesCount} pendientes, ${canceladasCount} canceladas`);
+        }
+      }
+
+    } catch (err: any) {
+      console.error("Error cargando donaciones:", err);
+      setError(err.message || "Error al cargar los datos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatosPrincipales();
   }, [router, tipoVista]);
 
   // Filtrar donaciones pendientes (solo para donaciones recibidas)
   const donacionesPendientes = donaciones.filter(donacion => 
-    tipoVista === "recibidas" && 
-    donacion.esPendiente && 
-    !donacion.procesada
+    tipoVista === "recibidas" && donacion.esPendiente
   );
 
-  // Donaciones completadas (sin detalles pendientes o ya procesadas)
+  // Donaciones completadas (todas las que NO son pendientes)
   const donacionesCompletadas = donaciones.filter(donacion => 
-    !donacion.esPendiente || donacion.procesada
+    !donacion.esPendiente
   );
 
   // Ordenar donaciones por fecha (más recientes primero)
-  const donacionesOrdenadas = [...donacionesCompletadas].sort((a, b) => {
+  const donacionesOrdenadas = [...donaciones].sort((a, b) => {
     const fechaA = a.fechaHora ? new Date(a.fechaHora) : new Date(a.fecha);
     const fechaB = b.fechaHora ? new Date(b.fechaHora) : new Date(b.fecha);
     return fechaB.getTime() - fechaA.getTime();
@@ -426,8 +524,8 @@ export default function Donaciones() {
     setCategoriaFiltro("todos");
   };
 
-  // Función para abrir el modal con los detalles
-  const abrirModalDetalles = async (donacion: any) => {
+  // Función CORREGIDA para abrir el modal con los detalles - USA LA NUEVA FUNCIÓN
+  const abrirModalDetalles = async (donacion: Donacion) => {
     setDonacionSeleccionada(donacion);
     setCargandoDetalles(true);
     setErrorDetalles("");
@@ -436,12 +534,11 @@ export default function Donaciones() {
     try {
       console.log(`🔍 Buscando detalles para donación ID: ${donacion.id}`);
       
-      const todosLosDetalles = await getDetallesDonacion();
-      const detallesFiltrados = todosLosDetalles.filter(detalle => 
-        detalle.donacionIdDonacion === donacion.id
-      );
+      // USAR LA NUEVA FUNCIÓN que filtra por ID de donación
+      const detallesFiltrados = filtrarDetallesPorDonacion(todosLosDetalles, donaciones, donacion.id);
       
-      console.log(`✅ Detalles encontrados: ${detallesFiltrados.length}`);
+      console.log(`✅ Detalles encontrados para donación ${donacion.id}: ${detallesFiltrados.length}`);
+      
       setDetallesDonacion(detallesFiltrados);
       
       if (detallesFiltrados.length === 0) {
@@ -463,21 +560,19 @@ export default function Donaciones() {
     setErrorDetalles("");
   };
 
-  // Función para abrir modal de gestión de donación pendiente
-  const abrirModalGestion = async (donacion: any) => {
+  // Función CORREGIDA para abrir modal de gestión de donación pendiente - USA LA NUEVA FUNCIÓN
+  const abrirModalGestion = async (donacion: Donacion) => {
     setDonacionPendiente(donacion);
     setDetallesSeleccionados([]);
     setModalGestionAbierto(true);
 
     try {
-      console.log(`🔍 Buscando detalles para donación: ${donacion.id}`);
+      console.log(`🔍 Buscando detalles para donación ID: ${donacion.id}`);
       
-      const todosLosDetalles = await getDetallesDonacion();
-      const detallesRelacionados = todosLosDetalles.filter(detalle => 
-        detalle.donacionIdDonacion === donacion.id
-      );
+      // USAR LA NUEVA FUNCIÓN que filtra por ID de donación
+      const detallesRelacionados = filtrarDetallesPorDonacion(todosLosDetalles, donaciones, donacion.id);
       
-      console.log(`📋 Detalles relacionados encontrados: ${detallesRelacionados.length}`);
+      console.log(`📋 Detalles relacionados encontrados para donación ${donacion.id}: ${detallesRelacionados.length}`);
       setDetallesPendientes(detallesRelacionados);
       
     } catch (err) {
@@ -504,56 +599,65 @@ export default function Donaciones() {
     });
   };
 
-  // Función para procesar donación y actualizar estado
-  const procesarDonacion = async (donacionId: number, nuevoEstado: string) => {
+  // Función para recargar datos completos
+  const recargarDatosCompletos = async () => {
     try {
-      await crearEstadoDonacion(donacionId, nuevoEstado);
-      
-      // Actualizar estado local
-      setDonaciones(prev => prev.map(donacion => {
-        if (donacion.id === donacionId) {
-          return {
-            ...donacion,
-            estadoActual: nuevoEstado,
-            esPendiente: false,
-            procesada: true
-          };
-        }
-        return donacion;
-      }));
-      
-      return true;
+      setLoading(true);
+      await cargarDatosPrincipales();
     } catch (error) {
-      console.error('Error procesando donación:', error);
-      return false;
+      console.error("Error recargando datos:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Función para aceptar toda la donación
+  // Función para actualizar el estado de una donación en la lista
+  const actualizarEstadoDonacion = (donacionId: number, nuevoEstado: string) => {
+    setDonaciones(prevDonaciones => 
+      prevDonaciones.map(donacion => 
+        donacion.id === donacionId 
+          ? { 
+              ...donacion, 
+              estadoActual: nuevoEstado,
+              estado: nuevoEstado,
+              esPendiente: false // Ya no es pendiente porque fue gestionada
+            }
+          : donacion
+      )
+    );
+  };
+
+  // Función CORREGIDA para aceptar toda la donación
   const aceptarTodaDonacion = async () => {
     if (!donacionPendiente) return;
     
     setProcesando(true);
     try {
-      console.log("✅ Aceptando toda la donación:", donacionPendiente.id);
+      console.log("✅ Aceptando toda la donación ID:", donacionPendiente.id, "Descripción:", donacionPendiente.descripcion);
       
-      const success = await procesarDonacion(donacionPendiente.id, ESTADOS_DONACION.CUMPLIDO);
+      // Procesar la donación
+      await procesarDonacion(donacionPendiente, 'aceptar');
       
-      if (success) {
-        alert("Donación aceptada completamente");
-        cerrarModalGestion();
-      } else {
-        alert("Error al aceptar la donación");
-      }
+      // ACTUALIZAR ESTADO LOCAL - Marcar como no pendiente y con nuevo estado
+      actualizarEstadoDonacion(donacionPendiente.id, ESTADOS_DONACION.CUMPLIDO);
+      
+      alert("Donación aceptada completamente");
+      cerrarModalGestion();
+      
+      // Recargar datos para asegurar consistencia
+      setTimeout(() => {
+        recargarDatosCompletos();
+      }, 1000);
+      
     } catch (error) {
       console.error("Error aceptando donación:", error);
-      alert("Error al aceptar la donación");
+      alert("Error al aceptar la donación: " + error.message);
     } finally {
       setProcesando(false);
     }
   };
 
-  // Función para rechazar toda la donación
+  // Función CORREGIDA para rechazar toda la donación
   const rechazarDonacion = async () => {
     if (!donacionPendiente) return;
     
@@ -563,56 +667,72 @@ export default function Donaciones() {
     
     setProcesando(true);
     try {
-      console.log("❌ Rechazando donación:", donacionPendiente.id);
+      console.log("❌ Rechazando donación ID:", donacionPendiente.id, "Descripción:", donacionPendiente.descripcion);
       
-      const success = await procesarDonacion(donacionPendiente.id, ESTADOS_DONACION.CANCELADO);
+      await procesarDonacion(donacionPendiente, 'rechazar');
       
-      if (success) {
-        alert("Donación rechazada");
-        cerrarModalGestion();
-      } else {
-        alert("Error al rechazar la donación");
-      }
+      // ACTUALIZAR ESTADO LOCAL - Marcar como no pendiente y con nuevo estado
+      actualizarEstadoDonacion(donacionPendiente.id, ESTADOS_DONACION.CANCELADO);
+      
+      alert("Donación rechazada");
+      cerrarModalGestion();
+      
+      // Recargar datos para asegurar consistencia
+      setTimeout(() => {
+        recargarDatosCompletos();
+      }, 1000);
+      
     } catch (error) {
       console.error("Error rechazando donación:", error);
-      alert("Error al rechazar la donación");
+      alert("Error al rechazar la donación: " + error.message);
     } finally {
       setProcesando(false);
     }
   };
 
-  // Función para aceptar detalles seleccionados
+  // Función CORREGIDA para aceptar detalles seleccionados
   const aceptarDetallesSeleccionados = async () => {
     if (!donacionPendiente || detallesSeleccionados.length === 0) return;
     
     setProcesando(true);
     try {
-      console.log("✅ Aceptando detalles:", detallesSeleccionados);
+      console.log("✅ Aceptando detalles seleccionados para donación ID:", donacionPendiente.id);
+      
+      let nuevoEstado = ESTADOS_DONACION.PARCIALMENTE_CUMPLIDO;
       
       // Si se seleccionaron todos los detalles, aceptar toda la donación
       if (detallesSeleccionados.length === detallesPendientes.length) {
-        await aceptarTodaDonacion();
+        await procesarDonacion(donacionPendiente, 'aceptar');
+        nuevoEstado = ESTADOS_DONACION.CUMPLIDO;
+        alert("Donación aceptada completamente");
       } else {
         // Si solo se seleccionaron algunos, marcar como parcialmente cumplido
-        const success = await procesarDonacion(donacionPendiente.id, ESTADOS_DONACION.PARCIALMENTE_CUMPLIDO);
-        
-        if (success) {
-          alert(`Se aceptaron ${detallesSeleccionados.length} detalles de la donación`);
-          cerrarModalGestion();
-        } else {
-          alert("Error al aceptar los detalles seleccionados");
-        }
+        await crearEstadoDonacion(donacionPendiente.id, donacionPendiente.descripcion, ESTADOS_DONACION.PARCIALMENTE_CUMPLIDO);
+        alert(`Se aceptaron ${detallesSeleccionados.length} detalles de la donación`);
       }
+      
+      // ACTUALIZAR ESTADO LOCAL
+      actualizarEstadoDonacion(donacionPendiente.id, nuevoEstado);
+      
+      cerrarModalGestion();
+      
+      // Recargar datos para asegurar consistencia
+      setTimeout(() => {
+        recargarDatosCompletos();
+      }, 1000);
+      
     } catch (error) {
       console.error("Error aceptando detalles:", error);
-      alert("Error al aceptar los detalles seleccionados");
+      alert("Error al aceptar los detalles seleccionados: " + error.message);
     } finally {
       setProcesando(false);
     }
   };
 
-  // Resto del JSX se mantiene igual...
-  // [El JSX permanece exactamente igual que en tu código original]
+  // Función para recargar los datos
+  const handleRecargar = () => {
+    cargarDatosPrincipales();
+  };
 
   if (loading) {
     return (
@@ -621,24 +741,6 @@ export default function Donaciones() {
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mb-4"></div>
             <p className="text-lg text-gray-600">Cargando donaciones...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !perfil) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <div className="flex w-full justify-center items-center h-64">
-          <div className="text-center">
-            <div className="text-red-500 text-lg mb-4">⚠️ {error}</div>
-            <Link
-              href="/Perfil/Crear"
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition"
-            >
-              Crear Perfil
-            </Link>
           </div>
         </div>
       </div>
@@ -678,6 +780,12 @@ export default function Donaciones() {
                 >
                   Chats
                 </Link>
+                <button
+                  onClick={handleRecargar}
+                  className="bg-blue-500 hover:bg-blue-600 py-2 rounded-lg text-center text-white transition"
+                >
+                  Actualizar Estados
+                </button>
               </div>
             </>
           )}
@@ -692,7 +800,7 @@ export default function Donaciones() {
             </h1>
             <p className="text-gray-600">
               {tipoVista === "enviadas" 
-                ? "Revisa todas las donaciones que has realizado" 
+                ? "Revisa todas las donaciones que has realizado y su estado actual" 
                 : "Revisa todas las donaciones que has recibido"
               }
             </p>
@@ -1083,13 +1191,36 @@ export default function Donaciones() {
                           <p><strong>Fecha:</strong> {donacionSeleccionada.fecha}</p>
                           <p><strong>Monto/Valor:</strong> {donacionSeleccionada.monto}</p>
                           <p><strong>Tipo:</strong> {donacionSeleccionada.tipo}</p>
+                          <p><strong>Estado:</strong> 
+                            <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                              donacionSeleccionada.estadoActual === 'Cumplido' 
+                                ? 'bg-green-100 text-green-800'
+                                : donacionSeleccionada.estadoActual === 'Parcialmente Cumplido'
+                                ? 'bg-blue-100 text-blue-800'
+                                : donacionSeleccionada.estadoActual === 'Cancelado'
+                                ? 'bg-red-100 text-red-800'
+                                : donacionSeleccionada.estadoActual === 'En Proceso'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : donacionSeleccionada.estadoActual === 'Pendiente'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {donacionSeleccionada.estadoActual}
+                            </span>
+                          </p>
                         </div>
                         <div>
                           <p><strong>Categoría:</strong> {donacionSeleccionada.categoria}</p>
                           {tipoVista === "enviadas" ? (
-                            <p><strong>Destinatario:</strong> {donacionSeleccionada.destinatario}</p>
+                            <>
+                              <p><strong>Destinatario:</strong> {donacionSeleccionada.destinatario}</p>
+                              <p><strong>Tu rol:</strong> Donante</p>
+                            </>
                           ) : (
-                            <p><strong>Donante:</strong> {donacionSeleccionada.donante}</p>
+                            <>
+                              <p><strong>Donante:</strong> {donacionSeleccionada.donante}</p>
+                              <p><strong>Tu rol:</strong> Destinatario</p>
+                            </>
                           )}
                         </div>
                       </div>
