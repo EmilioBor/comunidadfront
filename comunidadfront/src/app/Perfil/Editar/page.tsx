@@ -208,15 +208,14 @@ export default function EditarPerfil() {
 
   return (
     <>
-      <div className={`min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4 transition-all duration-300 ${
-        mostrarModalExito ? 'blur-sm brightness-90' : ''
-      }`} 
+      <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed p-4"
            style={{ backgroundImage: "url('/background-login.png')" }}>
         
+        {/* Botón Volver - Posicionado correctamente */}
         <button
           type="button"
           onClick={() => router.back()}
-          className="absolute top-6 left-6 bg-white text-center w-48 rounded-2xl h-14 text-black text-xl font-semibold group"
+          className="fixed top-24 left-6 bg-white text-center w-48 rounded-2xl h-14 text-black text-xl font-semibold group z-40"
         >
           <div className="bg-green-400 rounded-xl h-12 w-1/4 flex items-center justify-center absolute left-1 top-[4px] group-hover:w-[184px] z-10 duration-500">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" height="25px" width="25px">
@@ -444,29 +443,32 @@ export default function EditarPerfil() {
         </div>
       </div>
 
-      {/* Modal de éxito */}
+      {/* Modal de Éxito - Mismo diseño que los anteriores */}
       {mostrarModalExito && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-white bg-opacity-80 backdrop-blur-[2px]"></div>
-          
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-auto border border-green-200 animate-in zoom-in-95 duration-300">
+          {/* Ventana modal - Sin fondo oscuro detrás */}
+          <div className="bg-[#C5E9BE] rounded-2xl shadow-2xl p-6 w-full max-w-sm relative z-10 border-2 border-green-300 transform transition-all duration-300 scale-100">
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {/* Icono de éxito */}
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               
-              <h3 className="text-xl font-bold text-gray-800 mb-3">
-                ¡Perfil Actualizado!
-              </h3>
-              <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+              {/* Título y mensaje */}
+              <h3 className="text-xl font-bold text-green-700 mb-2">¡Perfil Actualizado!</h3>
+              <p className="text-gray-700 mb-1">
                 Los cambios en tu perfil se han guardado correctamente.
               </p>
+              <p className="text-gray-600 text-sm mb-6">
+                Tu información ha sido actualizada con éxito.
+              </p>
               
+              {/* Botón de acción */}
               <button
                 onClick={handleAceptar}
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105 active:scale-95"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition w-full transform hover:scale-105"
               >
                 Aceptar
               </button>
